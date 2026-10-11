@@ -58,6 +58,15 @@ Thumbs.db
 supabase/.temp/
 
 
-#Material de referencia
+# Material de referencia
 08-Taller_SVM.html
 Proyecto 1 - Clasificacion con Machine Learning  App Web.docx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+backend/.venv/
+env/
+venv/

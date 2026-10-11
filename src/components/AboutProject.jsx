@@ -71,7 +71,7 @@ export default function AboutProject() {
           <div className="p-4 rounded-xl bg-slateclinical-900/60 border border-slateclinical-800">
             <h3 className="text-sm font-bold text-white mb-1">Backend FastAPI + Scikit-Learn + Joblib</h3>
             <p className="text-xs text-slateclinical-400">
-              Pipeline de preprocesamiento (StandardScaler) y clasificador Random Forest serializado con <code>joblib</code> servido a través de una API REST moderna con FastAPI.
+              Pipelines de preprocesamiento herméticos (StandardScaler, PolynomialFeatures) y clasificadores serializados (Regresión Logística Binaria, SVM y Polinomial) servidos a través de una API REST moderna con FastAPI.
             </p>
           </div>
         </div>

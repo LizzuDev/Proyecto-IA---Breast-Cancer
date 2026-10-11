@@ -1,216 +1,223 @@
 import React, { useState, useEffect } from 'react';
-import { Database, BarChart3, CheckSquare, Layers, Award, FileSpreadsheet } from 'lucide-react';
-import { fetchMetadata } from '../services/api';
+import { Database, ShieldCheck, CheckCircle2, Layers, AlertCircle, FileText } from 'lucide-react';
+import { fetchModelsComparison } from '../services/api';
 
 export default function ModelMetrics() {
-  const [metadata, setMetadata] = useState(null);
+  const [data, setData] = useState(null);
+  const [activeModel, setActiveModel] = useState('reg_bin');
 
   useEffect(() => {
     async function load() {
-      const data = await fetchMetadata();
-      if (data) setMetadata(data);
+      const res = await fetchModelsComparison();
+      if (res) setData(res);
     }
     load();
   }, []);
 
-  const metrics = metadata?.metrics || {
-    accuracy: 0.9649,
-    precision: 1.0,
-    recall: 0.9048,
-    f1_score: 0.95,
-    roc_auc: 0.9947,
-    confusion_matrix: {
-      true_negative: 72,
-      false_positive: 0,
-      false_negative: 4,
-      true_positive: 38
-    }
-  };
-
-  const featureImportances = metadata?.feature_importances?.slice(0, 10) || [
-    { feature: 'concave points_worst', importance: 0.142 },
-    { feature: 'perimeter_worst', importance: 0.128 },
-    { feature: 'concave points_mean', importance: 0.115 },
-    { feature: 'radius_worst', importance: 0.098 },
-    { feature: 'area_worst', importance: 0.089 },
-    { feature: 'concavity_mean', importance: 0.065 },
-    { feature: 'concavity_worst', importance: 0.058 },
-    { feature: 'perimeter_mean', importance: 0.052 },
-    { feature: 'area_mean', importance: 0.046 },
-    { feature: 'radius_mean', importance: 0.041 },
-  ];
+  const models = data?.models || [];
+  const selected = models.find(m => m.id === activeModel) || models[0] || {};
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       
-      {/* Page Title */}
+      {/* Header */}
       <div>
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-rosepink-950 text-rosepink-300 border border-rosepink-700/40 text-xs font-semibold uppercase tracking-wider mb-3">
-          <Database className="w-3.5 h-3.5 text-rosepink-400" />
-          <span>Evaluación & Algoritmo</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white mb-2">
-          Rendimiento del Modelo {metadata?.model_name || 'Random Forest'}
+        <h1 className="text-lg font-bold text-gray-900">
+          Dataset & Validación de Modelos
         </h1>
-        <p className="text-sm sm:text-base text-slateclinical-300 max-w-2xl">
-          Resultados de validación sobre el 20% de muestras independientes (conjunto de test) del dataset Wisconsin Diagnostic Breast Cancer (WDBC).
+        <p className="text-xs text-gray-500 mt-0.5">
+          Fundamento estadístico, conjunto de datos de Wisconsin y justificación médica de los algoritmos seleccionados.
         </p>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        
-        <div className="glass-panel p-5 rounded-2xl border border-slateclinical-800">
-          <span className="text-xs uppercase text-slateclinical-400 font-semibold block mb-1">
-            Exactitud (Accuracy)
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-white font-display">
-            {(metrics.accuracy * 100).toFixed(1)}%
-          </div>
-          <span className="text-[11px] text-emerald-400 font-medium">110 / 114 correctos</span>
+      {/* Dataset Overview Card */}
+      <div className="bg-white p-6 rounded-md border border-gray-200/90 shadow-subtle space-y-4">
+        <div className="flex items-center space-x-2">
+          <Database className="w-4 h-4 text-roseclinical-600" />
+          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+            Origen y Características del Dataset
+          </h2>
         </div>
 
-        <div className="glass-panel p-5 rounded-2xl border border-slateclinical-800">
-          <span className="text-xs uppercase text-slateclinical-400 font-semibold block mb-1">
-            Precisión (Maligno)
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-white font-display">
-            {(metrics.precision * 100).toFixed(1)}%
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-1">
+          <div className="p-3.5 rounded bg-surface-subtle/80 border border-gray-200/60">
+            <span className="text-[11px] font-medium text-gray-500 block">Total de Biopsias</span>
+            <span className="text-xl font-bold text-gray-900 font-mono">569 muestras</span>
+            <span className="text-[10px] text-gray-400 block mt-0.5">357 benignas / 212 malignas</span>
           </div>
-          <span className="text-[11px] text-emerald-400 font-medium">0 falsos positivos</span>
+
+          <div className="p-3.5 rounded bg-surface-subtle/80 border border-gray-200/60">
+            <span className="text-[11px] font-medium text-gray-500 block">Variables Analizadas</span>
+            <span className="text-xl font-bold text-gray-900 font-mono">30 cuantitativas</span>
+            <span className="text-[10px] text-gray-400 block mt-0.5">Morfometría digital por FNA</span>
+          </div>
+
+          <div className="p-3.5 rounded bg-surface-subtle/80 border border-gray-200/60">
+            <span className="text-[11px] font-medium text-gray-500 block">Partición de Validación</span>
+            <span className="text-xl font-bold text-gray-900 font-mono">80% / 20%</span>
+            <span className="text-[10px] text-gray-400 block mt-0.5">455 train / 114 test ciego</span>
+          </div>
+
+          <div className="p-3.5 rounded bg-surface-subtle/80 border border-gray-200/60">
+            <span className="text-[11px] font-medium text-gray-500 block">Institución Fuente</span>
+            <span className="text-sm font-bold text-gray-900">Univ. de Wisconsin</span>
+            <span className="text-[10px] text-gray-400 block mt-0.5">Clinical Sciences Center</span>
+          </div>
         </div>
 
-        <div className="glass-panel p-5 rounded-2xl border border-slateclinical-800">
-          <span className="text-xs uppercase text-slateclinical-400 font-semibold block mb-1">
-            Sensibilidad (Recall)
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-white font-display">
-            {(metrics.recall * 100).toFixed(1)}%
-          </div>
-          <span className="text-[11px] text-slateclinical-400 font-medium">38 / 42 malignos</span>
-        </div>
-
-        <div className="glass-panel p-5 rounded-2xl border border-slateclinical-800">
-          <span className="text-xs uppercase text-slateclinical-400 font-semibold block mb-1">
-            F1-Score
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-white font-display">
-            {(metrics.f1_score * 100).toFixed(1)}%
-          </div>
-          <span className="text-[11px] text-slateclinical-400 font-medium">Balance armónico</span>
-        </div>
-
-        <div className="glass-panel p-5 rounded-2xl border border-rosepink-900/50 bg-rosepink-950/20 col-span-2 md:col-span-1">
-          <span className="text-xs uppercase text-rosepink-300 font-semibold block mb-1">
-            Área ROC (AUC)
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-rosepink-400 font-display">
-            {metrics.roc_auc.toFixed(4)}
-          </div>
-          <span className="text-[11px] text-rosepink-300/80 font-medium">Casi perfecto</span>
-        </div>
-
+        <p className="text-xs text-gray-600 leading-relaxed pt-1">
+          Las muestras corresponden a aspirados celulares por aguja fina donde se calcularon 10 características morfológicas nucleares en tres modalidades: valores medios, error estándar y mediciones extremas. Sin pérdida de datos ni fuga informativa entre entrenamiento y prueba.
+        </p>
       </div>
 
-      {/* Two Column Layout: Confusion Matrix & Top Feature Importances */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Confusion Matrix (5 cols) */}
-        <div className="lg:col-span-5 glass-panel p-6 sm:p-8 rounded-3xl border border-slateclinical-800 space-y-6">
-          <div className="flex items-center space-x-2">
-            <CheckSquare className="w-5 h-5 text-rosepink-400" />
-            <h2 className="text-lg font-bold font-display text-white">Matriz de Confusión</h2>
-          </div>
-          <p className="text-xs text-slateclinical-400">
-            Muestra el rendimiento en 114 biopsias reales nunca vistas por el modelo durante el entrenamiento.
+      {/* Clinical Rationale Box with Subtle Rose-Emerald balance */}
+      <div className="bg-white border-l-4 border-l-emerald-600 border border-gray-200/80 p-5 rounded-md shadow-subtle flex items-start space-x-3.5">
+        <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+            Criterio Clínico de Selección: Minimización de Falsos Negativos
+          </h2>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            En oncología diagnóstica, clasificar erróneamente un tumor maligno como benigno (falso negativo) puede retrasar un tratamiento vital. Por este motivo, la <strong>Regresión Logística Binaria</strong> fue seleccionada como algoritmo principal: alcanzó el menor número de falsos negativos (solo 2 casos de 42) y una sensibilidad de 95.24%, superando a arquitecturas más complejas.
           </p>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            {/* True Negative */}
-            <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-center">
-              <span className="text-[11px] uppercase tracking-wider text-emerald-300 font-semibold block mb-1">
-                Verdadero Benigno (TN)
-              </span>
-              <div className="text-3xl font-extrabold text-white font-display">
-                {metrics.confusion_matrix.true_negative}
-              </div>
-              <span className="text-[10px] text-emerald-400">Benigno clasificado como Benigno</span>
-            </div>
-
-            {/* False Positive */}
-            <div className="p-4 rounded-xl bg-slateclinical-900/60 border border-slateclinical-800 text-center">
-              <span className="text-[11px] uppercase tracking-wider text-slateclinical-400 font-semibold block mb-1">
-                Falso Positivo (FP)
-              </span>
-              <div className="text-3xl font-extrabold text-emerald-400 font-display">
-                {metrics.confusion_matrix.false_positive}
-              </div>
-              <span className="text-[10px] text-slateclinical-400">Benigno clasificado como Maligno</span>
-            </div>
-
-            {/* False Negative */}
-            <div className="p-4 rounded-xl bg-slateclinical-900/60 border border-slateclinical-800 text-center">
-              <span className="text-[11px] uppercase tracking-wider text-slateclinical-400 font-semibold block mb-1">
-                Falso Negativo (FN)
-              </span>
-              <div className="text-3xl font-extrabold text-amber-400 font-display">
-                {metrics.confusion_matrix.false_negative}
-              </div>
-              <span className="text-[10px] text-slateclinical-400">Maligno clasificado como Benigno</span>
-            </div>
-
-            {/* True Positive */}
-            <div className="p-4 rounded-xl bg-rosepink-950/40 border border-rosepink-500/40 text-center">
-              <span className="text-[11px] uppercase tracking-wider text-rosepink-300 font-semibold block mb-1">
-                Verdadero Maligno (TP)
-              </span>
-              <div className="text-3xl font-extrabold text-white font-display">
-                {metrics.confusion_matrix.true_positive}
-              </div>
-              <span className="text-[10px] text-rosepink-400">Maligno clasificado como Maligno</span>
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slateclinical-900/80 border border-slateclinical-800 text-xs text-slateclinical-400 leading-relaxed">
-            💡 <strong>Destacable:</strong> El modelo logró un 100% de precisión positiva (cero falsos positivos), lo cual previene alarmas innecesarias en pacientes sanos.
-          </div>
+      {/* Comparative Table */}
+      <div className="bg-white rounded-md border border-gray-200/90 shadow-subtle overflow-hidden">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+            Comparación de Modelos en Test Independiente (114 Biopsias)
+          </h2>
+          <span className="text-xs text-gray-400">
+            Evaluación estratificada
+          </span>
         </div>
 
-        {/* Feature Importances (7 cols) */}
-        <div className="lg:col-span-7 glass-panel p-6 sm:p-8 rounded-3xl border border-slateclinical-800 space-y-6">
-          <div className="flex items-center space-x-2">
-            <BarChart3 className="w-5 h-5 text-rosepink-400" />
-            <h2 className="text-lg font-bold font-display text-white">
-              Importancia de Características (Top 10)
-            </h2>
-          </div>
-          <p className="text-xs text-slateclinical-400">
-            Pesos relativos asignados por los árboles de decisión en la predicción de malignidad.
-          </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="bg-surface-subtle/80 border-b border-gray-100 text-gray-500 font-semibold uppercase text-[10px]">
+                <th className="py-2.5 px-4">Modelo Evaluado</th>
+                <th className="py-2.5 px-4">Exactitud</th>
+                <th className="py-2.5 px-4">Sensibilidad (Recall)</th>
+                <th className="py-2.5 px-4">Precisión (Maligno)</th>
+                <th className="py-2.5 px-4 text-center">Falsos Negativos</th>
+                <th className="py-2.5 px-4 text-center">Falsos Positivos</th>
+                <th className="py-2.5 px-4 text-right">Rol Asignado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {models.map((m) => (
+                <tr 
+                  key={m.id}
+                  onClick={() => setActiveModel(m.id)}
+                  className={`cursor-pointer transition-colors ${
+                    activeModel === m.id ? 'bg-roseclinical-50/50' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <td className="py-3 px-4 font-semibold text-gray-900">
+                    {m.name}
+                  </td>
+                  <td className="py-3 px-4 font-mono text-gray-700">{m.test_accuracy}%</td>
+                  <td className="py-3 px-4 font-mono font-bold text-gray-900">{m.test_recall}%</td>
+                  <td className="py-3 px-4 font-mono text-gray-700">{m.test_precision}%</td>
+                  <td className="py-3 px-4 text-center font-mono font-bold text-emerald-700">
+                    {m.confusion_matrix.false_negative} / 42
+                  </td>
+                  <td className="py-3 px-4 text-center font-mono text-gray-700">
+                    {m.confusion_matrix.false_positive} / 72
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                      m.is_recommended 
+                        ? 'bg-roseclinical-50 text-roseclinical-800 border-roseclinical-200' 
+                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                    }`}>
+                      {m.is_recommended ? 'Modelo Principal' : 'Complementario'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          <div className="space-y-3 pt-2">
-            {featureImportances.map((item, idx) => {
-              const pct = (item.importance * 100).toFixed(1);
-              return (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-xs font-mono">
-                    <span className="text-slateclinical-300">{item.feature}</span>
-                    <span className="text-rosepink-400 font-semibold">{pct}%</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-slateclinical-900 overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-rosepink-600 to-rosepink-400 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, item.importance * 350)}%` }}
-                    ></div>
-                  </div>
+      {/* Model Focus Breakdown Card */}
+      {selected.id && (
+        <div className="bg-white p-6 rounded-md border border-gray-200/90 shadow-subtle space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900">
+                Detalle Técnico: {selected.name}
+              </h3>
+              <p className="text-xs text-gray-500">
+                {selected.description}
+              </p>
+            </div>
+            <span className="text-xs font-mono text-roseclinical-700 font-semibold bg-roseclinical-50 px-2 py-0.5 rounded border border-roseclinical-200">
+              {selected.id}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
+            {/* Confusion Matrix Numbers */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-gray-700 block">
+                Matriz de Confusión en Prueba:
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                <div className="p-3 rounded bg-surface-subtle/80 border border-gray-200/80">
+                  <span className="text-[10px] text-gray-400 block">Verdadero Benigno (VN)</span>
+                  <span className="text-lg font-bold text-gray-900 font-mono">
+                    {selected.confusion_matrix?.true_negative}
+                  </span>
                 </div>
-              );
-            })}
+                <div className="p-3 rounded bg-surface-subtle/80 border border-gray-200/80">
+                  <span className="text-[10px] text-gray-400 block">Falso Positivo (FP)</span>
+                  <span className="text-lg font-bold text-emerald-700 font-mono">
+                    {selected.confusion_matrix?.false_positive}
+                  </span>
+                </div>
+                <div className="p-3 rounded bg-surface-subtle/80 border border-gray-200/80">
+                  <span className="text-[10px] text-gray-400 block">Falso Negativo (FN)</span>
+                  <span className="text-lg font-bold text-emerald-700 font-mono">
+                    {selected.confusion_matrix?.false_negative}
+                  </span>
+                </div>
+                <div className="p-3 rounded bg-surface-subtle/80 border border-gray-200/80">
+                  <span className="text-[10px] text-gray-400 block">Verdadero Maligno (VP)</span>
+                  <span className="text-lg font-bold text-gray-900 font-mono">
+                    {selected.confusion_matrix?.true_positive}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Hyperparameters */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-gray-700 block">
+                Hiperparámetros Óptimos (GridSearchCV):
+              </span>
+              <div className="p-3.5 rounded bg-surface-subtle/80 border border-gray-200/80 space-y-1.5 font-mono text-xs">
+                {Object.entries(selected.best_hyperparameters || {}).map(([p, v]) => (
+                  <div key={p} className="flex justify-between text-gray-700">
+                    <span className="text-gray-500">{p}:</span>
+                    <span className="font-bold text-gray-900">
+                      {typeof v === 'number' ? v.toFixed(4) : String(v)}
+                    </span>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-gray-200 flex justify-between text-gray-700">
+                  <span className="text-gray-500">Validación Cruzada (CV F1):</span>
+                  <span className="font-bold text-emerald-700">{selected.cv_f1}%</span>
+                </div>
+              </div>
+            </div>
           </div>
-
         </div>
-
-      </div>
+      )}
 
     </div>
   );

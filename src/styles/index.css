@@ -3,48 +3,40 @@
 @tailwind utilities;
 
 :root {
-  --color-bg-deep: #070C18;
-  --color-card-bg: #0F172A;
-  --color-primary-pink: #F43F6E;
-  --color-accent-pink: #E11D58;
+  --color-bg: #FAFAFB;
+  --color-card: #FFFFFF;
+  --color-border: #EAECEF;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: #111827;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B1120;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 9999px;
+  background: #D1D5DB;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #E11D58;
+  background: #9CA3AF;
 }
 
 /* Focus outline */
 *:focus-visible {
-  outline: 2px solid #F43F6E;
-  outline-offset: 3px;
-}
-
-/* Glassmorphism helpers */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(244, 63, 110, 0.15);
-}
-
-.glass-panel-subtle {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  outline: 2px solid #D62754;
+  outline-offset: 1px;
 }
