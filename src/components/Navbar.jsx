@@ -29,7 +29,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
   ];
 
   return (
-    <header className="bg-white border-b border-gray-200/80 sticky top-0 z-50">
+    <header className="bg-surface-bg/85 backdrop-blur-md border-b border-roseclinical-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
@@ -38,12 +38,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
             onClick={() => setActiveTab('landing')}
             className="flex items-center space-x-3 text-left focus:outline-none group"
           >
-            <div className="w-8 h-8 rounded-md bg-roseclinical-600 flex items-center justify-center text-white font-bold text-sm tracking-tight shadow-sm">
-              OP
-            </div>
             <div>
               <div className="flex items-center space-x-1.5">
-                <span className="text-base font-bold text-gray-900 tracking-tight">
+                <span className="font-display text-xl text-gray-900 tracking-tight">
                   OncoPath
                 </span>
                 <span className="text-xs font-semibold text-roseclinical-600">
@@ -109,7 +106,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-1">
+        <div className="md:hidden border-t border-roseclinical-100 bg-surface-bg px-4 py-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -120,10 +117,10 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   setActiveTab(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-xs font-semibold ${
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 border-l-2 text-xs font-semibold ${
                   isActive
-                    ? 'bg-roseclinical-50 text-roseclinical-700'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    ? 'border-roseclinical-600 text-roseclinical-700'
+                    : 'border-transparent text-gray-700 hover:text-gray-900'
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-roseclinical-600' : 'text-gray-400'}`} />

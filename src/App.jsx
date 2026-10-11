@@ -28,7 +28,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFB] text-gray-900 selection:bg-roseclinical-100 selection:text-roseclinical-900">
+    <div className="min-h-screen flex flex-col bg-surface-bg text-gray-900 selection:bg-roseclinical-100 selection:text-roseclinical-900">
       {/* Barra de Navegación Superior */}
       <Navbar activeTab={activeTab} setActiveTab={changeTab} />
 

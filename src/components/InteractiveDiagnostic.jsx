@@ -154,13 +154,13 @@ export default function InteractiveDiagnostic() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       
       {/* Header bar - Seamless horizontal layout without pill capsules */}
-      <div className="bg-white p-5 rounded-md border border-gray-200/90 shadow-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/70 p-5 border border-roseclinical-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-3">
             <h1 className="text-lg font-bold text-gray-900 tracking-tight">
               Evaluación Citopatológica
             </h1>
-            <span className="text-xs text-roseclinical-700 font-semibold px-2 py-0.5 bg-roseclinical-50 border border-roseclinical-200 rounded">
+            <span className="text-xs text-roseclinical-700 font-semibold">
               {activeSampleLabel}
             </span>
           </div>
@@ -171,15 +171,15 @@ export default function InteractiveDiagnostic() {
 
         {/* Quick Sample Selector - Clean flat segmented buttons */}
         <div className="flex items-center space-x-1.5">
-          <div className="inline-flex rounded-md border border-gray-200 bg-gray-50/60 p-0.5 text-xs font-medium">
+          <div className="inline-flex items-center gap-4 text-xs font-medium">
             <button
               onClick={() => {
                 if (samples?.benign?.[0]) handleLoadSample(samples.benign[0], 'Muestra Benigna');
               }}
-              className={`px-3 py-1.5 rounded transition-colors ${
+              className={`pb-1 border-b-2 transition-colors ${
                 activeSampleLabel === 'Muestra Benigna'
-                  ? 'bg-white text-gray-900 font-semibold shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'border-roseclinical-600 text-gray-900 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >
               Caso Benigno
@@ -189,10 +189,10 @@ export default function InteractiveDiagnostic() {
               onClick={() => {
                 if (samples?.malignant?.[0]) handleLoadSample(samples.malignant[0], 'Muestra Maligna');
               }}
-              className={`px-3 py-1.5 rounded transition-colors ${
+              className={`pb-1 border-b-2 transition-colors ${
                 activeSampleLabel === 'Muestra Maligna'
-                  ? 'bg-white text-roseclinical-700 font-semibold shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'border-roseclinical-600 text-roseclinical-700 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >
               Caso Sospechoso
@@ -200,10 +200,10 @@ export default function InteractiveDiagnostic() {
 
             <button
               onClick={handleLoadBorderline}
-              className={`px-3 py-1.5 rounded transition-colors ${
+              className={`pb-1 border-b-2 transition-colors ${
                 activeSampleLabel === 'Muestra Indeterminada'
-                  ? 'bg-white text-gray-900 font-semibold shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'border-roseclinical-600 text-gray-900 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >
               Caso Límite
@@ -212,7 +212,7 @@ export default function InteractiveDiagnostic() {
 
           <button
             onClick={handleReset}
-            className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
+            className="p-2 ml-2 text-gray-500 hover:text-roseclinical-700 transition-colors"
             title="Restablecer mediciones"
             aria-label="Restablecer mediciones"
           >
@@ -225,10 +225,10 @@ export default function InteractiveDiagnostic() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left Column: Form Section (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-md border border-gray-200/90 shadow-subtle p-6 space-y-6">
+        <div className="lg:col-span-7 bg-white/70 border border-roseclinical-100 p-6 space-y-6">
           
           {/* Subheader with View Mode Toggle */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-100 gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-roseclinical-100/70 gap-3">
             <div>
               <h2 className="text-sm font-bold text-gray-900">
                 Parámetros Celulares
@@ -239,23 +239,23 @@ export default function InteractiveDiagnostic() {
             </div>
 
             {/* Seamless Mode Switcher */}
-            <div className="inline-flex rounded-md border border-gray-200 bg-gray-50/70 p-0.5 text-xs font-medium">
+            <div className="inline-flex items-center gap-4 text-xs font-medium">
               <button
                 onClick={() => setMeasurementMode('mean')}
-                className={`px-3 py-1 rounded transition-colors ${
+                className={`pb-1 border-b-2 transition-colors ${
                   measurementMode === 'mean'
-                    ? 'bg-white text-gray-900 font-semibold shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'border-roseclinical-600 text-gray-900 font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
                 }`}
               >
                 Valores Medios
               </button>
               <button
                 onClick={() => setMeasurementMode('worst')}
-                className={`px-3 py-1 rounded transition-colors ${
+                className={`pb-1 border-b-2 transition-colors ${
                   measurementMode === 'worst'
-                    ? 'bg-white text-gray-900 font-semibold shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'border-roseclinical-600 text-gray-900 font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
                 }`}
               >
                 Mediciones Extremas
@@ -286,7 +286,7 @@ export default function InteractiveDiagnostic() {
                     return (
                       <div 
                         key={feat.key} 
-                        className="p-3 bg-surface-subtle/80 rounded border border-gray-200/60 hover:border-gray-300 transition-colors"
+                        className="p-3 bg-surface-subtle/80 border-l-2 border-transparent hover:border-roseclinical-300 transition-colors"
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <label 
@@ -331,7 +331,7 @@ export default function InteractiveDiagnostic() {
           </div>
 
           {/* Model selection & Prominent Execute Button */}
-          <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="pt-4 border-t border-roseclinical-100/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
               <span className="text-xs text-gray-500 font-medium">Algoritmo:</span>
               <select
@@ -350,7 +350,7 @@ export default function InteractiveDiagnostic() {
             <button
               onClick={handleExecute}
               disabled={loading}
-              className="inline-flex items-center justify-center space-x-2 px-7 py-2.5 rounded-md bg-roseclinical-600 hover:bg-roseclinical-700 active:bg-roseclinical-800 text-white font-semibold text-xs tracking-wide shadow-sm transition-all disabled:opacity-50"
+              className="inline-flex items-center justify-center space-x-2 px-7 py-2.5 rounded-md bg-roseclinical-600 hover:bg-roseclinical-700 active:bg-roseclinical-800 text-white font-semibold text-xs tracking-wide transition-all disabled:opacity-50"
             >
               <Activity className="w-4 h-4" />
               <span>{loading ? 'Calculando diagnóstico...' : 'Ejecutar Diagnóstico'}</span>
@@ -363,17 +363,17 @@ export default function InteractiveDiagnostic() {
         <div className="lg:col-span-5 space-y-5">
           
           {/* Main Result Card */}
-          <div className="bg-white rounded-md border border-gray-200/90 shadow-subtle p-6 space-y-6">
+          <div className="bg-white/70 border border-roseclinical-100 p-6 space-y-6">
             
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div className="flex items-center justify-between border-b border-roseclinical-100/70 pb-3">
               <h2 className="text-sm font-bold text-gray-900">
                 Resultado del Análisis
               </h2>
               {prediction && (
-                <span className={`text-xs px-2.5 py-0.5 rounded font-semibold border ${
+                <span className={`text-xs font-semibold uppercase tracking-wider ${
                   prediction.diagnosis === 'Benigno'
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : 'bg-roseclinical-50 text-roseclinical-800 border-roseclinical-200'
+                    ? 'text-emerald-700'
+                    : 'text-roseclinical-700'
                 }`}>
                   {prediction.diagnosis}
                 </span>
@@ -381,14 +381,14 @@ export default function InteractiveDiagnostic() {
             </div>
 
             {error && (
-              <div className="p-3.5 rounded bg-roseclinical-50 border border-roseclinical-200 text-roseclinical-800 text-xs">
+              <div className="py-2 pl-3 border-l-2 border-roseclinical-500 text-roseclinical-800 text-xs">
                 {error}
               </div>
             )}
 
             {!prediction && !error && (
               <div className="text-center py-14 px-4 space-y-3">
-                <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center mx-auto text-gray-400">
+                <div className="flex items-center justify-center mx-auto text-roseclinical-300">
                   <Sliders className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-gray-800">
@@ -445,7 +445,7 @@ export default function InteractiveDiagnostic() {
 
                 {/* Multi-Model Consensus (Clean Flat Grid) */}
                 {prediction.multi_model_summary && (
-                  <div className="p-3.5 rounded bg-surface-subtle/80 border border-gray-200/60 space-y-2.5">
+                  <div className="p-3.5 bg-surface-subtle/80 space-y-2.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-gray-800">Consenso de Modelos</span>
                       <span className="text-gray-500 font-medium font-mono text-[11px]">
@@ -459,7 +459,7 @@ export default function InteractiveDiagnostic() {
                         return (
                           <div 
                             key={key} 
-                            className="bg-white p-2 rounded border border-gray-200"
+                            className="bg-white/80 p-2 border-b border-roseclinical-100"
                           >
                             <span className="text-[10px] text-gray-400 block truncate">
                               {data.short_name}
@@ -479,13 +479,13 @@ export default function InteractiveDiagnostic() {
 
                 {/* Key Cellular Alterations (Clean Integrated List) */}
                 {prediction.top_deviations && prediction.top_deviations.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <div className="space-y-2 pt-2 border-t border-roseclinical-100/70">
                     <span className="text-xs font-bold text-gray-800 block">
                       Parámetros con mayor desviación respecto a lo benigno:
                     </span>
                     <div className="space-y-1.5">
                       {prediction.top_deviations.slice(0, 4).map((d, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded bg-surface-subtle/70">
+                        <div key={i} className="flex items-center justify-between text-xs py-1.5 px-2.5 bg-surface-subtle/70">
                           <span className="font-mono text-gray-700 text-[11px]">{d.feature}</span>
                           <span className={`font-semibold font-mono text-[11px] ${
                             d.deviation_z > 0 ? 'text-roseclinical-700' : 'text-emerald-700'
@@ -499,7 +499,7 @@ export default function InteractiveDiagnostic() {
                 )}
 
                 {/* Minimalist Medical Disclaimer */}
-                <div className="text-[11px] text-gray-400 leading-relaxed pt-2 border-t border-gray-100">
+                <div className="text-[11px] text-gray-400 leading-relaxed pt-2 border-t border-roseclinical-100/70">
                   Herramienta analítica de apoyo a la decisión diagnóstica. Requiere correlación histopatológica formal.
                 </div>
 
