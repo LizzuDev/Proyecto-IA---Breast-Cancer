@@ -1,4 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
+
+// Las cifras esperadas salen del mismo artefacto que genera `python -m ml.train`.
+const COMPARISON = JSON.parse(readFileSync(new URL('../backend/artifacts/comparison.json', import.meta.url)));
+const PRIMARY = COMPARISON.models.find((m) => m.id === COMPARISON.primary_model);
+const pct = (v) => `${(v * 100).toFixed(1)}%`;
 
 const API = 'http://127.0.0.1:8000';
 
@@ -63,7 +69,7 @@ test.describe('Landing y navegación', () => {
   test('la landing muestra el contenido clave', async ({ page }) => {
     await page.goto('/#landing');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('biopsia mamaria');
-    for (const v of ['95.2%', '0.998', '569']) {
+    for (const v of [pct(PRIMARY.test.recall), PRIMARY.test.roc_auc.toFixed(3), String(COMPARISON.dataset.total)]) {
       await expect(page.getByText(v, { exact: true })).toBeVisible();
     }
     await expect(page.getByRole('heading', { name: 'Cómo funciona' })).toBeVisible();
@@ -148,8 +154,10 @@ test.describe('Landing y navegación', () => {
 
 test.describe('Herramienta de diagnóstico', () => {
   test.beforeEach(async ({ page }) => {
+    // La espera se registra antes de navegar: si no, la respuesta puede llegar antes y no detectarse.
+    const samplesLoaded = page.waitForResponse((r) => r.url().endsWith('/api/samples'));
     await page.goto('/#tool');
-    await page.waitForResponse((r) => r.url().endsWith('/api/samples'));
+    await samplesLoaded;
   });
 
   test('estado inicial: valores basales y sin resultado', async ({ page }) => {
@@ -166,7 +174,8 @@ test.describe('Herramienta de diagnóstico', () => {
     const body = await runDiagnosis(page);
     expect(body.diagnosis).toBe('Benigno');
     await expect(resultBadge(page)).toHaveText('Benigno');
-    await expect(page.getByText(`${body.probability_benign}%`).first()).toBeVisible();
+    await expect(page.getByText(`${body.probability_malignant}%`, { exact: true })).toBeVisible();
+    await expect(page.getByText(`se considera maligno desde ${body.threshold}%`)).toBeVisible();
   });
 
   test('caso sospechoso real se clasifica como Maligno con consenso unánime', async ({ page }) => {
@@ -286,7 +295,8 @@ test.describe('Modelos & Dataset', () => {
     await expect(page.getByText('569', { exact: true })).toBeVisible();
     await expect(page.getByText('benignas · 62.7%')).toBeVisible();
     await expect(page.getByText('malignas · 37.3%')).toBeVisible();
-    await expect(page.locator('dl dt')).toHaveCount(2 + 10 + 3);
+    await expect(page.getByText('Los 10 rasgos del núcleo')).toBeVisible();
+    await expect(page.getByText('Puntos cóncavos', { exact: true })).toBeVisible();
   });
 
   test('la tabla refleja los datos de la API', async ({ page, request }) => {
@@ -296,24 +306,22 @@ test.describe('Modelos & Dataset', () => {
     for (const [i, m] of api.models.entries()) {
       const row = rows.nth(i);
       await expect(row).toContainText(m.name);
-      await expect(row).toContainText(`${m.test_recall}%`);
-      await expect(row).toContainText(`${m.test_accuracy}%`);
-      await expect(row).toContainText(`${m.confusion_matrix.false_negative} / 42`);
+      await expect(row).toContainText(pct(m.test.recall));
+      await expect(row).toContainText(pct(m.test.specificity));
+      await expect(row).toContainText(m.threshold.toFixed(2));
+      await expect(row).toContainText(`${m.test.confusion_matrix.false_negative} / ${api.dataset.test_malignant}`);
+      await expect(row).toContainText(m.is_recommended ? 'Modelo principal' : 'Complementario');
     }
-    await expect(rows.first()).toContainText('Modelo principal');
   });
 
   test('el modelo principal está seleccionado por defecto', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Regresión Logística Binaria' })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByRole('heading', { level: 3, name: 'Regresión Logística Binaria' })).toBeVisible();
+    await expect(page.getByRole('button', { name: PRIMARY.name, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('heading', { level: 3, name: PRIMARY.name })).toBeVisible();
   });
 
-  const cases = [
-    ['Support Vector Machine (RBF)', { fn: '3', fp: '0', tp: '39', tn: '72' }],
-    ['Regresión Logística Polinomial (Grado 2)', { fn: '4', fp: '3', tp: '38', tn: '69' }],
-    ['Regresión Logística Binaria', { fn: '2', fp: '0', tp: '40', tn: '72' }],
-  ];
-  for (const [name, cm] of cases) {
+  for (const { name, test: { confusion_matrix: m } } of COMPARISON.models) {
+    const cm = { fn: String(m.false_negative), fp: String(m.false_positive),
+      tp: String(m.true_positive), tn: String(m.true_negative) };
     test(`seleccionar "${name}" actualiza el detalle y la matriz`, async ({ page }) => {
       await page.getByRole('button', { name, exact: true }).click();
       await expect(page.getByRole('heading', { level: 3, name })).toBeVisible();
@@ -327,15 +335,23 @@ test.describe('Modelos & Dataset', () => {
 
   test('la matriz suma el tamaño del test', async ({ page }) => {
     const cell = (label) => page.locator(`div:has(> span:text-is("${label}")) > span`).first();
-    await expect(cell('Verdaderos negativos')).toHaveText('72');
+    await expect(cell('Verdaderos negativos')).toHaveText(String(PRIMARY.test.confusion_matrix.true_negative));
     const labels = ['Verdaderos negativos', 'Falsos positivos', 'Falsos negativos', 'Verdaderos positivos'];
     const values = await Promise.all(labels.map((l) => cell(l).textContent()));
-    expect(values.map(Number).reduce((a, b) => a + b, 0)).toBe(114);
+    expect(values.map(Number).reduce((a, b) => a + b, 0)).toBe(COMPARISON.dataset.test);
   });
 
   test('hacer clic en cualquier parte de la fila selecciona el modelo', async ({ page }) => {
-    await page.locator('tbody tr').nth(1).locator('td').nth(3).click();
-    await expect(page.getByRole('button', { name: 'Support Vector Machine (RBF)' })).toHaveAttribute('aria-pressed', 'true');
+    const other = COMPARISON.models.findIndex((m) => !m.is_recommended);
+    await page.locator('tbody tr').nth(other).locator('td').nth(3).click();
+    await expect(page.getByRole('button', { name: COMPARISON.models[other].name, exact: true }))
+      .toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('el diagrama de calibración se dibuja para el modelo seleccionado', async ({ page }) => {
+    const diagram = page.getByRole('img', { name: 'Diagrama de fiabilidad de las probabilidades del modelo' });
+    await expect(diagram).toBeVisible();
+    await expect(diagram.locator('circle')).toHaveCount(PRIMARY.calibration_curve.length);
   });
 });
 
@@ -356,13 +372,20 @@ test.describe('Sin backend', () => {
   test('Modelos & Dataset usa los datos precomputados', async ({ page }) => {
     await page.goto('/#metrics');
     await expect(page.locator('tbody tr')).toHaveCount(3);
-    await expect(page.locator('tbody tr').first()).toContainText('95.24%');
+    await expect(page.locator('tbody tr').first()).toContainText(pct(COMPARISON.models[0].test.recall));
+  });
+
+  test('los casos de ejemplo se deshabilitan sin API', async ({ page }) => {
+    await page.goto('/#tool');
+    await expect(page.getByRole('button', { name: 'Caso Benigno' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Caso Sospechoso' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Caso Límite' })).toBeEnabled();
   });
 
   test('el diagnóstico informa del error de conexión', async ({ page }) => {
     await page.goto('/#tool');
     await page.getByRole('button', { name: 'Ejecutar Diagnóstico' }).click();
-    await expect(page.locator('.border-roseclinical-500.text-roseclinical-800')).toBeVisible();
+    await expect(page.getByText('No se pudo conectar con el servicio de inferencia')).toBeVisible();
     await expect(page.getByText('Consenso de Modelos')).toHaveCount(0);
   });
 });
@@ -391,8 +414,10 @@ test.describe('Móvil @mobile', () => {
   }
 
   test('un diagnóstico completo funciona en móvil @mobile', async ({ page }) => {
+    // La espera se registra antes de navegar: si no, la respuesta puede llegar antes y no detectarse.
+    const samplesLoaded = page.waitForResponse((r) => r.url().endsWith('/api/samples'));
     await page.goto('/#tool');
-    await page.waitForResponse((r) => r.url().endsWith('/api/samples'));
+    await samplesLoaded;
     await page.getByRole('button', { name: 'Caso Benigno' }).click();
     const body = await runDiagnosis(page);
     expect(body.diagnosis).toBe('Benigno');

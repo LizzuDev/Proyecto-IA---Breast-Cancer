@@ -1,11 +1,16 @@
-import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { MODEL_COMPARISON } from '../services/api';
+import { pct, primaryModel } from '../utils/format';
+
+const primary = primaryModel(MODEL_COMPARISON);
+const { dataset } = MODEL_COMPARISON;
+const cm = primary.test.confusion_matrix;
 
 export default function LandingHero({ onStartTool, onGoToMetrics }) {
   const metrics = [
-    { value: '95.2%', label: 'Sensibilidad ante tumores malignos' },
-    { value: '0.998', label: 'ROC-AUC en test independiente' },
-    { value: '569', label: 'Biopsias FNA del dataset Wisconsin' },
+    { value: pct(primary.test.recall), label: 'Sensibilidad ante tumores malignos' },
+    { value: primary.test.roc_auc.toFixed(3), label: 'ROC-AUC en test independiente' },
+    { value: String(dataset.total), label: 'Biopsias FNA del dataset Wisconsin' },
   ];
 
   const steps = [
@@ -15,7 +20,7 @@ export default function LandingHero({ onStartTool, onGoToMetrics }) {
     },
     {
       title: 'Compara',
-      desc: 'Regresión Logística, SVM y Regresión Polinomial evalúan la muestra en paralelo para verificar su concordancia.',
+      desc: 'SVM, Regresión Logística y Regresión Polinomial evalúan la muestra en paralelo para verificar su concordancia.',
     },
     {
       title: 'Interpreta',
@@ -103,9 +108,10 @@ export default function LandingHero({ onStartTool, onGoToMetrics }) {
           </h2>
           <div className="md:col-span-3 space-y-4 text-sm text-gray-600 leading-relaxed">
             <p>
-              En oncología, un falso negativo puede retrasar un tratamiento vital. Por eso el modelo
-              principal se eligió por su sensibilidad: en el test ciego de 114 biopsias identificó
-              40 de los 42 tumores malignos.
+              En oncología, un falso negativo puede retrasar un tratamiento vital. Por eso cada modelo
+              usa un umbral clínico ajustado para priorizar la sensibilidad, y sus probabilidades están
+              calibradas. En el test ciego de {dataset.test} biopsias, el modelo principal identificó{' '}
+              {cm.true_positive} de los {dataset.test_malignant} tumores malignos.
             </p>
             <p className="text-gray-500">
               Herramienta de apoyo con fines académicos e investigativos. No sustituye el criterio

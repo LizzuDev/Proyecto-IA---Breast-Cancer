@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function Footer({ setActiveTab }) {
   return (
     <footer className="border-t border-roseclinical-100 py-8 mt-16">

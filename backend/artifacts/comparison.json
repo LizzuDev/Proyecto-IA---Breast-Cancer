@@ -1,0 +1,338 @@
+{
+  "dataset": {
+    "total": 569,
+    "benign": 357,
+    "malignant": 212,
+    "train": 455,
+    "test": 114,
+    "test_benign": 72,
+    "test_malignant": 42,
+    "n_features": 30
+  },
+  "primary_model": "svm",
+  "target_recall": 0.98,
+  "selection_criterion": "Menor Brier score en validación cruzada repetida 5x5 sobre entrenamiento.",
+  "models": [
+    {
+      "id": "reg_bin",
+      "name": "Regresión Logística Binaria",
+      "short_name": "Reg. Logística",
+      "description": "Frontera lineal regularizada. Interpretable: cada coeficiente indica cuánto empuja una variable hacia maligno.",
+      "is_recommended": false,
+      "best_hyperparameters": {
+        "clf__C": 1.0,
+        "clf__l1_ratio": 0
+      },
+      "threshold": 0.15388531106837108,
+      "test": {
+        "roc_auc": 0.996031746031746,
+        "brier": 0.02109599860663092,
+        "log_loss": 0.07655968352339511,
+        "ece": 0.02824403108660863,
+        "threshold": 0.1539,
+        "accuracy": 0.956140350877193,
+        "precision": 0.9111111111111111,
+        "recall": 0.9761904761904762,
+        "specificity": 0.9444444444444444,
+        "f1": 0.9425287356321839,
+        "confusion_matrix": {
+          "true_negative": 68,
+          "false_positive": 4,
+          "false_negative": 1,
+          "true_positive": 41
+        }
+      },
+      "test_default_threshold": {
+        "threshold": 0.5,
+        "accuracy": 0.9736842105263158,
+        "precision": 0.975609756097561,
+        "recall": 0.9523809523809523,
+        "specificity": 0.9861111111111112,
+        "f1": 0.963855421686747,
+        "confusion_matrix": {
+          "true_negative": 71,
+          "false_positive": 1,
+          "false_negative": 2,
+          "true_positive": 40
+        }
+      },
+      "cv": {
+        "roc_auc": {
+          "mean": 0.9940557275541796,
+          "std": 0.0016758732511386184
+        },
+        "brier": {
+          "mean": 0.020134204433266117,
+          "std": 0.0021638032277110425
+        },
+        "ece": {
+          "mean": 0.014935321231858362,
+          "std": 0.0033868461707828547
+        },
+        "recall_at_threshold": {
+          "mean": 0.9811764705882353,
+          "std": 0.006859943405700375
+        },
+        "specificity_at_threshold": {
+          "mean": 0.9382456140350879,
+          "std": 0.005701079582200656
+        },
+        "recall_at_0_5": {
+          "mean": 0.9541176470588235,
+          "std": 0.004401949866792904
+        }
+      },
+      "calibration_curve": [
+        {
+          "bin_start": 0.0,
+          "bin_end": 0.2,
+          "mean_predicted": 0.0193,
+          "observed_frequency": 0.0145,
+          "count": 275
+        },
+        {
+          "bin_start": 0.2,
+          "bin_end": 0.4,
+          "mean_predicted": 0.2881,
+          "observed_frequency": 0.2,
+          "count": 10
+        },
+        {
+          "bin_start": 0.4,
+          "bin_end": 0.6,
+          "mean_predicted": 0.5033,
+          "observed_frequency": 0.4286,
+          "count": 7
+        },
+        {
+          "bin_start": 0.6,
+          "bin_end": 0.8,
+          "mean_predicted": 0.6592,
+          "observed_frequency": 0.8,
+          "count": 10
+        },
+        {
+          "bin_start": 0.8,
+          "bin_end": 1.0,
+          "mean_predicted": 0.989,
+          "observed_frequency": 1.0,
+          "count": 153
+        }
+      ]
+    },
+    {
+      "id": "svm",
+      "name": "Support Vector Machine (RBF)",
+      "short_name": "SVM (RBF)",
+      "description": "Frontera no lineal con kernel gaussiano y probabilidades calibradas por escalado de Platt.",
+      "is_recommended": true,
+      "best_hyperparameters": {
+        "clf__estimator__C": 10.0,
+        "clf__estimator__gamma": 0.01
+      },
+      "threshold": 0.24316414285289328,
+      "test": {
+        "roc_auc": 0.996031746031746,
+        "brier": 0.01786207014574075,
+        "log_loss": 0.07033625411003151,
+        "ece": 0.026015941940263052,
+        "threshold": 0.2432,
+        "accuracy": 0.9824561403508771,
+        "precision": 0.9761904761904762,
+        "recall": 0.9761904761904762,
+        "specificity": 0.9861111111111112,
+        "f1": 0.9761904761904762,
+        "confusion_matrix": {
+          "true_negative": 71,
+          "false_positive": 1,
+          "false_negative": 1,
+          "true_positive": 41
+        }
+      },
+      "test_default_threshold": {
+        "threshold": 0.5,
+        "accuracy": 0.9824561403508771,
+        "precision": 1.0,
+        "recall": 0.9523809523809523,
+        "specificity": 1.0,
+        "f1": 0.975609756097561,
+        "confusion_matrix": {
+          "true_negative": 72,
+          "false_positive": 0,
+          "false_negative": 2,
+          "true_positive": 40
+        }
+      },
+      "cv": {
+        "roc_auc": {
+          "mean": 0.9945675954592363,
+          "std": 0.0011443034200451228
+        },
+        "brier": {
+          "mean": 0.019092267918452446,
+          "std": 0.0010566729544019163
+        },
+        "ece": {
+          "mean": 0.020000067197526367,
+          "std": 0.0014862017737658493
+        },
+        "recall_at_threshold": {
+          "mean": 0.9776470588235293,
+          "std": 0.0068599434057003295
+        },
+        "specificity_at_threshold": {
+          "mean": 0.9614035087719298,
+          "std": 0.004962152850431928
+        },
+        "recall_at_0_5": {
+          "mean": 0.9541176470588235,
+          "std": 0.00576350527713691
+        }
+      },
+      "calibration_curve": [
+        {
+          "bin_start": 0.0,
+          "bin_end": 0.2,
+          "mean_predicted": 0.0199,
+          "observed_frequency": 0.0109,
+          "count": 274
+        },
+        {
+          "bin_start": 0.2,
+          "bin_end": 0.4,
+          "mean_predicted": 0.2738,
+          "observed_frequency": 0.3333,
+          "count": 9
+        },
+        {
+          "bin_start": 0.4,
+          "bin_end": 0.6,
+          "mean_predicted": 0.4934,
+          "observed_frequency": 0.3636,
+          "count": 11
+        },
+        {
+          "bin_start": 0.6,
+          "bin_end": 0.8,
+          "mean_predicted": 0.6707,
+          "observed_frequency": 0.8333,
+          "count": 6
+        },
+        {
+          "bin_start": 0.8,
+          "bin_end": 1.0,
+          "mean_predicted": 0.9818,
+          "observed_frequency": 1.0,
+          "count": 155
+        }
+      ]
+    },
+    {
+      "id": "log_pol",
+      "name": "Regresión Logística Polinomial (Grado 2)",
+      "short_name": "Reg. Polinomial",
+      "description": "Añade términos cuadráticos e interacciones entre las 30 variables (495 en total).",
+      "is_recommended": false,
+      "best_hyperparameters": {
+        "clf__C": 1.0,
+        "clf__l1_ratio": 1
+      },
+      "threshold": 0.1642389050957311,
+      "test": {
+        "roc_auc": 0.9940476190476191,
+        "brier": 0.03129487594649088,
+        "log_loss": 0.10434537943678011,
+        "ece": 0.030416580821765803,
+        "threshold": 0.1642,
+        "accuracy": 0.956140350877193,
+        "precision": 0.9302325581395349,
+        "recall": 0.9523809523809523,
+        "specificity": 0.9583333333333334,
+        "f1": 0.9411764705882353,
+        "confusion_matrix": {
+          "true_negative": 69,
+          "false_positive": 3,
+          "false_negative": 2,
+          "true_positive": 40
+        }
+      },
+      "test_default_threshold": {
+        "threshold": 0.5,
+        "accuracy": 0.9649122807017544,
+        "precision": 0.9523809523809523,
+        "recall": 0.9523809523809523,
+        "specificity": 0.9722222222222222,
+        "f1": 0.9523809523809523,
+        "confusion_matrix": {
+          "true_negative": 70,
+          "false_positive": 2,
+          "false_negative": 2,
+          "true_positive": 40
+        }
+      },
+      "cv": {
+        "roc_auc": {
+          "mean": 0.9938163054695563,
+          "std": 0.0026444969165482675
+        },
+        "brier": {
+          "mean": 0.02065894550432906,
+          "std": 0.0016811056452844578
+        },
+        "ece": {
+          "mean": 0.01801609523580264,
+          "std": 0.002632317475249102
+        },
+        "recall_at_threshold": {
+          "mean": 0.9799999999999999,
+          "std": 0.0028817526385684347
+        },
+        "specificity_at_threshold": {
+          "mean": 0.9368421052631579,
+          "std": 0.005871298431818092
+        },
+        "recall_at_0_5": {
+          "mean": 0.9564705882352941,
+          "std": 0.00880389973358576
+        }
+      },
+      "calibration_curve": [
+        {
+          "bin_start": 0.0,
+          "bin_end": 0.2,
+          "mean_predicted": 0.0214,
+          "observed_frequency": 0.0145,
+          "count": 275
+        },
+        {
+          "bin_start": 0.2,
+          "bin_end": 0.4,
+          "mean_predicted": 0.2962,
+          "observed_frequency": 0.0,
+          "count": 8
+        },
+        {
+          "bin_start": 0.4,
+          "bin_end": 0.6,
+          "mean_predicted": 0.5193,
+          "observed_frequency": 0.6667,
+          "count": 9
+        },
+        {
+          "bin_start": 0.6,
+          "bin_end": 0.8,
+          "mean_predicted": 0.7144,
+          "observed_frequency": 0.7,
+          "count": 10
+        },
+        {
+          "bin_start": 0.8,
+          "bin_end": 1.0,
+          "mean_predicted": 0.9862,
+          "observed_frequency": 1.0,
+          "count": 153
+        }
+      ]
+    }
+  ]
+}

@@ -1,56 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  RotateCcw, 
-  CheckCircle, 
-  AlertCircle, 
-  Sliders, 
-  Layers, 
-  ArrowRight,
-  TrendingUp,
-  FileText
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, RotateCcw, Sliders } from 'lucide-react';
 import { predictDiagnosis, fetchSamples } from '../services/api';
-
-const CLINICAL_FEATURE_GROUPS = [
-  {
-    category: 'Dimensiones Celulares',
-    description: 'Magnitud geométrica y volumen nuclear',
-    features: [
-      { key: 'radius', name: 'Radio nuclear', unit: 'µm', defaultMean: 14.12, min: 6.0, max: 30.0, step: 0.1 },
-      { key: 'perimeter', name: 'Perímetro nuclear', unit: 'µm', defaultMean: 91.96, min: 40.0, max: 190.0, step: 0.5 },
-      { key: 'area', name: 'Área nuclear', unit: 'µm²', defaultMean: 654.88, min: 140.0, max: 2500.0, step: 5.0 },
-    ]
-  },
-  {
-    category: 'Contorno e Irregularidades',
-    description: 'Hendiduras perimetrales y compacidad',
-    features: [
-      { key: 'concavity', name: 'Concavidad', unit: 'índice', defaultMean: 0.088, min: 0.0, max: 0.45, step: 0.005 },
-      { key: 'concave points', name: 'Puntos cóncavos', unit: 'índice', defaultMean: 0.048, min: 0.0, max: 0.21, step: 0.002 },
-      { key: 'compactness', name: 'Compacidad', unit: 'índice', defaultMean: 0.104, min: 0.01, max: 0.35, step: 0.001 },
-    ]
-  },
-  {
-    category: 'Morfología y Textura',
-    description: 'Distribución cromatínica y simetría',
-    features: [
-      { key: 'texture', name: 'Textura cromatínica', unit: 'escala', defaultMean: 19.28, min: 9.0, max: 40.0, step: 0.1 },
-      { key: 'smoothness', name: 'Suavidad superficial', unit: 'índice', defaultMean: 0.096, min: 0.05, max: 0.17, step: 0.001 },
-      { key: 'symmetry', name: 'Simetría nuclear', unit: 'índice', defaultMean: 0.181, min: 0.10, max: 0.32, step: 0.005 },
-      { key: 'fractal_dimension', name: 'Irregularidad de borde', unit: 'índice', defaultMean: 0.062, min: 0.04, max: 0.10, step: 0.001 },
-    ]
-  }
-];
-
-const ALL_KEYS = [
-  'radius', 'texture', 'perimeter', 'area', 'smoothness',
-  'compactness', 'concavity', 'concave points', 'symmetry', 'fractal_dimension'
-];
+import { CLINICAL_FEATURE_GROUPS, baselineFeatures, borderlineFeatures } from '../constants/clinicalFeatures';
 
 export default function InteractiveDiagnostic() {
   const [measurementMode, setMeasurementMode] = useState('mean'); // 'mean' o 'worst'
-  const [selectedAlgorithm, setSelectedAlgorithm] = useState('all');
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState('all'); // 'all' = consenso con el modelo principal
   const [samples, setSamples] = useState(null);
   const [features, setFeatures] = useState({});
   const [prediction, setPrediction] = useState(null);
@@ -59,18 +14,7 @@ export default function InteractiveDiagnostic() {
   const [activeSampleLabel, setActiveSampleLabel] = useState('Valores basales');
 
   useEffect(() => {
-    const initial = {};
-    ALL_KEYS.forEach(k => {
-      let defVal = 14.12;
-      CLINICAL_FEATURE_GROUPS.forEach(g => {
-        const found = g.features.find(f => f.key === k);
-        if (found) defVal = found.defaultMean;
-      });
-      initial[`${k}_mean`] = defVal;
-      initial[`${k}_se`] = Number((defVal * 0.05).toFixed(3));
-      initial[`${k}_worst`] = Number((defVal * 1.25).toFixed(2));
-    });
-    setFeatures(initial);
+    setFeatures(baselineFeatures());
 
     async function loadData() {
       const sData = await fetchSamples();
@@ -97,37 +41,14 @@ export default function InteractiveDiagnostic() {
   };
 
   const handleLoadBorderline = () => {
-    const synthetic = {};
-    ALL_KEYS.forEach(k => {
-      let defVal = 14.12;
-      CLINICAL_FEATURE_GROUPS.forEach(g => {
-        const found = g.features.find(f => f.key === k);
-        if (found) defVal = found.defaultMean;
-      });
-      const mid = Number((defVal * 1.18).toFixed(3));
-      synthetic[`${k}_mean`] = mid;
-      synthetic[`${k}_se`] = Number((mid * 0.06).toFixed(3));
-      synthetic[`${k}_worst`] = Number((mid * 1.25).toFixed(2));
-    });
-    setFeatures(synthetic);
+    setFeatures(borderlineFeatures());
     setActiveSampleLabel('Muestra Indeterminada');
     setPrediction(null);
     setError(null);
   };
 
   const handleReset = () => {
-    const initial = {};
-    ALL_KEYS.forEach(k => {
-      let defVal = 14.12;
-      CLINICAL_FEATURE_GROUPS.forEach(g => {
-        const found = g.features.find(f => f.key === k);
-        if (found) defVal = found.defaultMean;
-      });
-      initial[`${k}_mean`] = defVal;
-      initial[`${k}_se`] = Number((defVal * 0.05).toFixed(3));
-      initial[`${k}_worst`] = Number((defVal * 1.25).toFixed(2));
-    });
-    setFeatures(initial);
+    setFeatures(baselineFeatures());
     setActiveSampleLabel('Valores basales');
     setPrediction(null);
     setError(null);
@@ -173,10 +94,12 @@ export default function InteractiveDiagnostic() {
         <div className="flex items-center space-x-1.5">
           <div className="inline-flex items-center gap-4 text-xs font-medium">
             <button
+              disabled={!samples?.benign?.[0]}
+              title={samples ? undefined : 'Disponible cuando la API está activa'}
               onClick={() => {
                 if (samples?.benign?.[0]) handleLoadSample(samples.benign[0], 'Muestra Benigna');
               }}
-              className={`pb-1 border-b-2 transition-colors ${
+              className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                 activeSampleLabel === 'Muestra Benigna'
                   ? 'border-roseclinical-600 text-gray-900 font-semibold'
                   : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -186,10 +109,12 @@ export default function InteractiveDiagnostic() {
             </button>
 
             <button
+              disabled={!samples?.malignant?.[0]}
+              title={samples ? undefined : 'Disponible cuando la API está activa'}
               onClick={() => {
                 if (samples?.malignant?.[0]) handleLoadSample(samples.malignant[0], 'Muestra Maligna');
               }}
-              className={`pb-1 border-b-2 transition-colors ${
+              className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                 activeSampleLabel === 'Muestra Maligna'
                   ? 'border-roseclinical-600 text-roseclinical-700 font-semibold'
                   : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -200,7 +125,7 @@ export default function InteractiveDiagnostic() {
 
             <button
               onClick={handleLoadBorderline}
-              className={`pb-1 border-b-2 transition-colors ${
+              className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                 activeSampleLabel === 'Muestra Indeterminada'
                   ? 'border-roseclinical-600 text-gray-900 font-semibold'
                   : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -242,7 +167,7 @@ export default function InteractiveDiagnostic() {
             <div className="inline-flex items-center gap-4 text-xs font-medium">
               <button
                 onClick={() => setMeasurementMode('mean')}
-                className={`pb-1 border-b-2 transition-colors ${
+                className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                   measurementMode === 'mean'
                     ? 'border-roseclinical-600 text-gray-900 font-semibold'
                     : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -252,7 +177,7 @@ export default function InteractiveDiagnostic() {
               </button>
               <button
                 onClick={() => setMeasurementMode('worst')}
-                className={`pb-1 border-b-2 transition-colors ${
+                className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                   measurementMode === 'worst'
                     ? 'border-roseclinical-600 text-gray-900 font-semibold'
                     : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -280,7 +205,7 @@ export default function InteractiveDiagnostic() {
                   {group.features.map((feat) => {
                     const fullKey = `${feat.key}_${measurementMode}`;
                     const val = features[fullKey] !== undefined ? features[fullKey] : feat.defaultMean;
-                    const minVal = measurementMode === 'worst' ? feat.min : feat.min;
+                    const minVal = feat.min;
                     const maxVal = measurementMode === 'worst' ? (feat.max * 1.4) : feat.max;
 
                     return (
@@ -341,8 +266,8 @@ export default function InteractiveDiagnostic() {
                 onChange={(e) => setSelectedAlgorithm(e.target.value)}
                 className="text-xs font-semibold bg-white border border-gray-200 rounded px-2.5 py-2 text-gray-800 focus:outline-none focus:border-roseclinical-500"
               >
-                <option value="all">Consenso (3 Modelos)</option>
-                <option value="reg_bin">Regresión Logística (Principal)</option>
+                <option value="all">Consenso (modelo principal)</option>
+                <option value="reg_bin">Regresión Logística</option>
                 <option value="svm">SVM Kernel RBF</option>
                 <option value="log_pol">Regresión Polinomial</option>
               </select>
@@ -397,7 +322,7 @@ export default function InteractiveDiagnostic() {
                   Esperando Ejecución
                 </h3>
                 <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                  Presione <strong>"Ejecutar Diagnóstico"</strong> para iniciar la inferencia matemática de los modelos.
+                  Presione <strong>Ejecutar Diagnóstico</strong> para iniciar la inferencia matemática de los modelos.
                 </p>
               </div>
             )}
@@ -430,18 +355,21 @@ export default function InteractiveDiagnostic() {
 
                     <div className="absolute bottom-0 text-center">
                       <span className="text-3xl font-bold font-mono text-gray-900 block leading-tight">
-                        {prediction.diagnosis === 'Benigno' ? prediction.probability_benign : prediction.probability_malignant}%
-                      </span>
-                      <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
-                        Probabilidad {prediction.diagnosis}
+                        {prediction.probability_malignant}%
                       </span>
                     </div>
                   </div>
+                  <span className="mt-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                    Probabilidad de malignidad
+                  </span>
 
                   <div className="mt-4 text-center">
                     <div className="text-xs font-medium text-gray-700">
                       Evaluación: <span className={prediction.diagnosis === 'Benigno' ? 'text-emerald-700 font-bold' : 'text-roseclinical-700 font-bold'}>{prediction.risk_level}</span>
                     </div>
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      {prediction.name} · se considera maligno desde {prediction.threshold}%
+                    </p>
                   </div>
                 </div>
 

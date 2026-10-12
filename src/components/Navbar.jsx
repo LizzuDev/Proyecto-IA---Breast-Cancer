@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Activity, LayoutDashboard, Database, Menu, X } from 'lucide-react';
 import { checkApiHealth } from '../services/api';
 

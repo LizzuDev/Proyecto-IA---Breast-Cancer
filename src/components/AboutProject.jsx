@@ -1,5 +1,4 @@
-import React from 'react';
-import { ShieldAlert, BookOpen, Cpu, Heart, CheckCircle2, ExternalLink } from 'lucide-react';
+import { ShieldAlert, BookOpen, Cpu, ExternalLink } from 'lucide-react';
 
 export default function AboutProject() {
   return (

@@ -1,15 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { fetchModelsComparison } from '../services/api';
-
-const DATASET = {
-  total: 569,
-  benign: 357,
-  malignant: 212,
-  train: 455,
-  test: 114,
-  testBenign: 72,
-  testMalignant: 42,
-};
+import { useState, useEffect } from 'react';
+import { fetchModelsComparison, MODEL_COMPARISON } from '../services/api';
+import { pct, primaryModel } from '../utils/format';
 
 const NUCLEAR_FEATURES = [
   { name: 'Radio', desc: 'Distancia media del centro al contorno del núcleo.' },
@@ -24,23 +15,27 @@ const NUCLEAR_FEATURES = [
   { name: 'Dimensión fractal', desc: 'Irregularidad fina del borde.' },
 ];
 
-const pct = (n, d) => ((n / d) * 100).toFixed(1);
+const formatParam = (value) => (typeof value === 'number' ? Number(value.toFixed(4)) : String(value));
+const paramName = (key) => key.replace(/^clf__(estimator__)?/, '');
 
 export default function ModelMetrics() {
-  const [data, setData] = useState(null);
-  const [activeModel, setActiveModel] = useState('reg_bin');
+  const [data, setData] = useState(MODEL_COMPARISON);
+  const [activeModel, setActiveModel] = useState(MODEL_COMPARISON.primary_model);
 
   useEffect(() => {
-    async function load() {
-      const res = await fetchModelsComparison();
-      if (res) setData(res);
-    }
-    load();
+    let mounted = true;
+    fetchModelsComparison().then((res) => {
+      if (mounted && res) setData(res);
+    });
+    return () => { mounted = false; };
   }, []);
 
-  const models = data?.models || [];
-  const selected = models.find(m => m.id === activeModel) || models[0] || {};
-  const cm = selected.confusion_matrix || {};
+  const { dataset, models } = data;
+  const primary = primaryModel(data);
+  const selected = models.find((m) => m.id === activeModel) || primary;
+  const cm = selected.test.confusion_matrix;
+  const sortedByFn = [...models].sort(
+    (a, b) => a.test.confusion_matrix.false_negative - b.test.confusion_matrix.false_negative);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-8">
@@ -67,7 +62,7 @@ export default function ModelMetrics() {
           </h2>
           <p className="text-sm text-gray-600 leading-relaxed">
             Imágenes digitalizadas de aspirados con aguja fina (FNA) recogidas en la Universidad de
-            Wisconsin. De cada imagen se midieron los núcleos celulares y se resumieron en 30 variables
+            Wisconsin. De cada imagen se midieron los núcleos celulares y se resumieron en {dataset.n_features} variables
             numéricas.
           </p>
           <p className="text-sm text-gray-600 leading-relaxed">
@@ -81,18 +76,18 @@ export default function ModelMetrics() {
           <div>
             <div className="flex items-baseline justify-between gap-4">
               <span className="font-display text-5xl font-light text-gray-900 tracking-tight tabular-nums">
-                {DATASET.total}
+                {dataset.total}
               </span>
               <span className="text-sm text-gray-500">biopsias diagnosticadas</span>
             </div>
             <div className="mt-4 flex h-2 overflow-hidden" role="img"
-              aria-label={`${DATASET.benign} benignas y ${DATASET.malignant} malignas`}>
-              <div className="bg-emerald-500/70" style={{ width: `${pct(DATASET.benign, DATASET.total)}%` }} />
-              <div className="bg-roseclinical-500" style={{ width: `${pct(DATASET.malignant, DATASET.total)}%` }} />
+              aria-label={`${dataset.benign} benignas y ${dataset.malignant} malignas`}>
+              <div className="bg-emerald-500/70" style={{ width: pct(dataset.benign / dataset.total) }} />
+              <div className="bg-roseclinical-500" style={{ width: pct(dataset.malignant / dataset.total) }} />
             </div>
             <div className="mt-2 flex justify-between text-xs text-gray-600 tabular-nums">
-              <span><span className="font-semibold text-emerald-700">{DATASET.benign}</span> benignas · {pct(DATASET.benign, DATASET.total)}%</span>
-              <span><span className="font-semibold text-roseclinical-700">{DATASET.malignant}</span> malignas · {pct(DATASET.malignant, DATASET.total)}%</span>
+              <span><span className="font-semibold text-emerald-700">{dataset.benign}</span> benignas · {pct(dataset.benign / dataset.total)}</span>
+              <span><span className="font-semibold text-roseclinical-700">{dataset.malignant}</span> malignas · {pct(dataset.malignant / dataset.total)}</span>
             </div>
           </div>
 
@@ -100,16 +95,16 @@ export default function ModelMetrics() {
           <dl className="grid grid-cols-2 border-t border-roseclinical-200/70">
             <div className="pt-5 pr-6 border-r border-roseclinical-200/70">
               <dt className="text-xs text-gray-500">Variables</dt>
-              <dd className="mt-1 font-display text-3xl font-light text-gray-900 tabular-nums">30</dd>
+              <dd className="mt-1 font-display text-3xl font-light text-gray-900 tabular-nums">{dataset.n_features}</dd>
               <dd className="mt-1 text-xs text-gray-500 leading-relaxed">10 rasgos × media, error estándar y peor valor</dd>
             </div>
             <div className="pt-5 pl-6">
               <dt className="text-xs text-gray-500">Entrenamiento / test</dt>
               <dd className="mt-1 font-display text-3xl font-light text-gray-900 tabular-nums">
-                {DATASET.train}<span className="text-gray-300"> / </span>{DATASET.test}
+                {dataset.train}<span className="text-gray-300"> / </span>{dataset.test}
               </dd>
               <dd className="mt-1 text-xs text-gray-500 leading-relaxed">
-                80 / 20 · test con {DATASET.testBenign} benignas y {DATASET.testMalignant} malignas
+                80 / 20 · test con {dataset.test_benign} benignas y {dataset.test_malignant} malignas
               </dd>
             </div>
           </dl>
@@ -137,14 +132,22 @@ export default function ModelMetrics() {
       {/* Criterio clínico */}
       <section className="mt-16 pt-12 border-t border-roseclinical-200/70 grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12">
         <blockquote className="md:col-span-3 font-display text-2xl sm:text-3xl font-light text-gray-900 leading-snug tracking-tight">
-          Un falso negativo es un cáncer que no se detecta. Por eso el modelo principal se eligió
-          por su <em className="italic text-roseclinical-600">sensibilidad</em>, no por su exactitud.
+          Un falso negativo es un cáncer que no se detecta. Por eso cada modelo decide con un
+          <em className="italic text-roseclinical-600"> umbral clínico</em>, no con el 50 % por defecto.
         </blockquote>
-        <p className="md:col-span-2 text-sm text-gray-600 leading-relaxed md:pt-2">
-          La <strong className="font-semibold text-gray-900">Regresión Logística Binaria</strong> dejó
-          escapar solo 2 de los 42 tumores malignos del test, menos que SVM (3) y que la Regresión
-          Polinomial (4), y no produjo ningún falso positivo.
-        </p>
+        <div className="md:col-span-2 space-y-3 text-sm text-gray-600 leading-relaxed md:pt-2">
+          <p>
+            El umbral de cada modelo es el más alto que alcanza una sensibilidad del {pct(data.target_recall, 0)} en
+            validación cruzada sobre el entrenamiento. Las probabilidades están calibradas: un 30 % significa
+            que, de cada 10 casos parecidos, unos 3 son malignos.
+          </p>
+          <p>
+            El modelo principal, <strong className="font-semibold text-gray-900">{primary.name}</strong>, es el de
+            mejor puntuación de Brier, que mide a la vez acierto y calibración. En el test dejó escapar{' '}
+            {primary.test.confusion_matrix.false_negative} de {dataset.test_malignant} tumores malignos
+            {sortedByFn.length > 1 && ` (${sortedByFn.map((m) => `${m.short_name}: ${m.test.confusion_matrix.false_negative}`).join(', ')})`}.
+          </p>
+        </div>
       </section>
 
       {/* Comparación */}
@@ -153,24 +156,25 @@ export default function ModelMetrics() {
           <h2 className="font-display text-2xl sm:text-3xl text-gray-900 tracking-tight">
             Rendimiento en el test ciego
           </h2>
-          <span className="text-xs text-gray-500">{DATASET.test} biopsias · seleccione un modelo para ver el detalle</span>
+          <span className="text-xs text-gray-500">{dataset.test} biopsias · con el umbral clínico de cada modelo</span>
         </div>
 
         <div className="mt-8 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[680px] text-left text-sm">
             <thead>
               <tr className="border-b border-roseclinical-200 text-[11px] uppercase tracking-wider text-gray-500">
                 <th className="py-3 pr-4 pl-3 font-semibold">Modelo</th>
                 <th className="py-3 px-4 font-semibold">Sensibilidad</th>
-                <th className="py-3 px-4 font-semibold text-right">Exactitud</th>
-                <th className="py-3 px-4 font-semibold text-right">Precisión</th>
+                <th className="py-3 px-4 font-semibold text-right">Especificidad</th>
                 <th className="py-3 px-4 font-semibold text-right">ROC-AUC</th>
+                <th className="py-3 px-4 font-semibold text-right">Brier</th>
+                <th className="py-3 px-4 font-semibold text-right">Umbral</th>
                 <th className="py-3 pl-4 font-semibold text-right">Falsos neg.</th>
               </tr>
             </thead>
             <tbody>
               {models.map((m) => {
-                const isActive = activeModel === m.id;
+                const isActive = selected.id === m.id;
                 return (
                   <tr
                     key={m.id}
@@ -194,18 +198,19 @@ export default function ModelMetrics() {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-20 h-1 bg-roseclinical-100">
-                          <div className="h-1 bg-roseclinical-500" style={{ width: `${m.test_recall}%` }} />
+                        <div className="w-16 h-1 bg-roseclinical-100">
+                          <div className="h-1 bg-roseclinical-500" style={{ width: pct(m.test.recall) }} />
                         </div>
-                        <span className="font-mono text-gray-900 tabular-nums">{m.test_recall}%</span>
+                        <span className="font-mono text-gray-900 tabular-nums">{pct(m.test.recall)}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-700 tabular-nums">{m.test_accuracy}%</td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-700 tabular-nums">{m.test_precision}%</td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-700 tabular-nums">{(m.test_roc_auc / 100).toFixed(3)}</td>
+                    <td className="py-4 px-4 text-right font-mono text-gray-700 tabular-nums">{pct(m.test.specificity)}</td>
+                    <td className="py-4 px-4 text-right font-mono text-gray-700 tabular-nums">{m.test.roc_auc.toFixed(3)}</td>
+                    <td className="py-4 px-4 text-right font-mono text-gray-700 tabular-nums">{m.test.brier.toFixed(3)}</td>
+                    <td className="py-4 px-4 text-right font-mono text-gray-700 tabular-nums">{m.threshold.toFixed(2)}</td>
                     <td className="py-4 pl-4 text-right font-mono tabular-nums">
-                      <span className="font-semibold text-gray-900">{m.confusion_matrix.false_negative}</span>
-                      <span className="text-gray-400"> / {DATASET.testMalignant}</span>
+                      <span className="font-semibold text-gray-900">{m.test.confusion_matrix.false_negative}</span>
+                      <span className="text-gray-400"> / {dataset.test_malignant}</span>
                     </td>
                   </tr>
                 );
@@ -216,32 +221,29 @@ export default function ModelMetrics() {
       </section>
 
       {/* Detalle del modelo seleccionado */}
-      {selected.id && (
-        <section className="mt-12 grid grid-cols-1 md:grid-cols-5 gap-10 md:gap-12" aria-live="polite">
-          <div className="md:col-span-2">
-            <p className="text-xs font-mono text-roseclinical-600">{selected.id}</p>
-            <h3 className="mt-1 font-display text-2xl text-gray-900 tracking-tight">{selected.name}</h3>
-            <p className="mt-2 text-sm text-gray-600 leading-relaxed">{selected.description}</p>
+      <section className="mt-12 grid grid-cols-1 md:grid-cols-5 gap-10 md:gap-12" aria-live="polite">
+        <div className="md:col-span-2">
+          <p className="text-xs font-mono text-roseclinical-600">{selected.id}</p>
+          <h3 className="mt-1 font-display text-2xl text-gray-900 tracking-tight">{selected.name}</h3>
+          <p className="mt-2 text-sm text-gray-600 leading-relaxed">{selected.description}</p>
 
-            <dl className="mt-6 text-sm">
-              {Object.entries(selected.best_hyperparameters || {}).map(([p, v]) => (
-                <div key={p} className="flex justify-between gap-4 py-2 border-b border-roseclinical-100">
-                  <dt className="font-mono text-xs text-gray-500">{p.replace('clf__', '')}</dt>
-                  <dd className="font-mono text-gray-900 tabular-nums">
-                    {typeof v === 'number' ? Number(v.toFixed(4)) : String(v)}
-                  </dd>
-                </div>
-              ))}
-              <div className="flex justify-between gap-4 py-2 border-b border-roseclinical-100">
-                <dt className="text-xs text-gray-500">F1 en validación cruzada</dt>
-                <dd className="font-mono text-gray-900 tabular-nums">{selected.cv_f1}%</dd>
-              </div>
-            </dl>
-            <p className="mt-2 text-[11px] text-gray-400">Hiperparámetros elegidos con GridSearchCV (5 folds).</p>
-          </div>
+          <dl className="mt-6 text-sm">
+            {Object.entries(selected.best_hyperparameters).map(([p, v]) => (
+              <DetailRow key={p} label={<span className="font-mono">{paramName(p)}</span>} value={formatParam(v)} />
+            ))}
+            <DetailRow label="Umbral clínico" value={selected.threshold.toFixed(3)} />
+            <DetailRow label="Sensibilidad en validación cruzada" value={pct(selected.cv.recall_at_threshold.mean)} />
+            <DetailRow label="Especificidad en validación cruzada" value={pct(selected.cv.specificity_at_threshold.mean)} />
+            <DetailRow label="Error de calibración (ECE)" value={selected.cv.ece.mean.toFixed(3)} />
+          </dl>
+          <p className="mt-2 text-[11px] text-gray-400">
+            Hiperparámetros elegidos con GridSearchCV (5 folds) minimizando log-loss.
+          </p>
+        </div>
 
+        <div className="md:col-span-3 min-w-0 space-y-10">
           {/* Matriz de confusión */}
-          <div className="md:col-span-3 min-w-0">
+          <div>
             <p className="text-sm font-semibold text-gray-900">Matriz de confusión</p>
             <div className="mt-4 grid grid-cols-[auto_1fr_1fr] text-sm">
               <div />
@@ -256,17 +258,32 @@ export default function ModelMetrics() {
               <MatrixCell value={cm.false_negative} label="Falsos negativos" tone="critical" />
               <MatrixCell value={cm.true_positive} label="Verdaderos positivos" tone="ok" />
             </div>
-            <p className="mt-4 text-xs text-gray-500 leading-relaxed">
-              La celda de falsos negativos es la que más pesa en la práctica clínica: son tumores
-              malignos que el modelo habría clasificado como benignos.
-            </p>
           </div>
-        </section>
-      )}
+
+          {/* Calibración */}
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Calibración</p>
+            <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+              Probabilidad predicha frente a la proporción real de malignos (validación cruzada). Cuanto más
+              cerca de la diagonal, más fiable es el porcentaje que muestra la herramienta.
+            </p>
+            <ReliabilityDiagram curve={selected.calibration_curve} />
+          </div>
+        </div>
+      </section>
 
       <p className="mt-16 pt-6 border-t border-roseclinical-100 text-xs text-gray-400">
         Fuente: Wolberg, Street &amp; Mangasarian. Breast Cancer Wisconsin (Diagnostic). UCI Machine Learning Repository.
       </p>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }) {
+  return (
+    <div className="flex justify-between gap-4 py-2 border-b border-roseclinical-100">
+      <dt className="text-xs text-gray-500">{label}</dt>
+      <dd className="font-mono text-gray-900 tabular-nums">{value}</dd>
     </div>
   );
 }
@@ -279,8 +296,42 @@ function MatrixCell({ value, label, tone }) {
   };
   return (
     <div className={`m-px px-2 sm:px-4 py-5 text-center ${styles[tone]}`}>
-      <span className="block font-display text-3xl font-light tabular-nums">{value ?? '–'}</span>
+      <span className="block font-display text-3xl font-light tabular-nums">{value}</span>
       <span className="block mt-1 text-[11px] opacity-80">{label}</span>
     </div>
+  );
+}
+
+function ReliabilityDiagram({ curve }) {
+  const size = 220;
+  const pad = 40;
+  const scale = (v) => pad + v * (size - 2 * pad);
+  const y = (v) => size - scale(v);
+  const maxCount = Math.max(...curve.map((b) => b.count));
+  const points = curve.map((b) => `${scale(b.mean_predicted)},${y(b.observed_frequency)}`).join(' ');
+  const ticks = [0, 0.5, 1];
+
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} className="mt-4 w-full max-w-[280px]" role="img"
+      aria-label="Diagrama de fiabilidad de las probabilidades del modelo">
+      <rect x={pad} y={pad} width={size - 2 * pad} height={size - 2 * pad} fill="none" stroke="#F1E4E8" />
+      <line x1={scale(0)} y1={y(0)} x2={scale(1)} y2={y(1)} stroke="#D1D5DB" strokeDasharray="4 4" />
+      {ticks.map((t) => (
+        <g key={t} fontSize="9" fill="#6B7280">
+          <text x={scale(t)} y={size - pad + 14} textAnchor="middle">{t * 100}%</text>
+          <text x={pad - 6} y={y(t) + 3} textAnchor="end">{t * 100}%</text>
+        </g>
+      ))}
+      <polyline points={points} fill="none" stroke="#D62754" strokeWidth="1.5" />
+      {curve.map((b) => (
+        <circle key={b.bin_start} cx={scale(b.mean_predicted)} cy={y(b.observed_frequency)}
+          r={2.5 + 4 * Math.sqrt(b.count / maxCount)} fill="#D62754" fillOpacity="0.85">
+          <title>{`Predicho ${pct(b.mean_predicted)} · real ${pct(b.observed_frequency)} · ${b.count} casos`}</title>
+        </circle>
+      ))}
+      <text x={size / 2} y={size - 4} textAnchor="middle" fontSize="9" fill="#6B7280">Probabilidad predicha</text>
+      <text x={9} y={size / 2} textAnchor="middle" fontSize="9" fill="#6B7280"
+        transform={`rotate(-90 9 ${size / 2})`}>Proporción real</text>
+    </svg>
   );
 }
