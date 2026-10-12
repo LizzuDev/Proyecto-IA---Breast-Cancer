@@ -68,6 +68,7 @@ def train_candidate(candidate: Candidate, data: Dataset) -> dict:
         "test": {**probability_metrics(data.y_test, test_proba),
                  **classification_metrics(data.y_test, test_proba, threshold)},
         "test_default_threshold": classification_metrics(data.y_test, test_proba, 0.5),
+        "oof": oof,  # probabilidades fuera de fold (no se exportan; útiles para análisis)
     }
 
 
@@ -136,16 +137,20 @@ def write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+def train_all(data: Dataset) -> list[dict]:
+    """Entrena los candidatos y marca como principal el de menor Brier en validación cruzada."""
     np.random.seed(config.RANDOM_STATE)
-    data = load_dataset()
-
     results = [train_candidate(c, data) for c in CANDIDATES]
     primary = min(results, key=lambda r: r["cv"]["brier"]["mean"])
-    primary_id = primary["candidate"].id
-    log.info("Modelo principal: %s", primary_id)
+    for r in results:
+        r["is_primary"] = r is primary
+    log.info("Modelo principal: %s", primary["candidate"].id)
+    return results
 
+
+def export(results: list[dict], data: Dataset) -> dict:
+    """Escribe pipelines, comparison.json, metadata.json y el informe de selección."""
+    primary = next(r for r in results if r["is_primary"])
     models_dir = config.ARTIFACTS_DIR / "models"
     for r in results:
         model_dir = models_dir / r["candidate"].id
@@ -154,10 +159,10 @@ def main() -> None:
 
     comparison = {
         "dataset": dataset_summary(data),
-        "primary_model": primary_id,
+        "primary_model": primary["candidate"].id,
         "target_recall": config.TARGET_RECALL,
         "selection_criterion": "Menor Brier score en validación cruzada repetida 5x5 sobre entrenamiento.",
-        "models": [model_summary(r, r is primary) for r in results],
+        "models": [model_summary(r, r["is_primary"]) for r in results],
     }
     write_json(config.ARTIFACTS_DIR / "comparison.json", comparison)
     write_json(config.ARTIFACTS_DIR / "metadata.json", {
@@ -172,6 +177,13 @@ def main() -> None:
     })
     write_report(comparison, config.REPORTS_DIR / "model_selection.md")
     log.info("Artefactos escritos en %s", config.ARTIFACTS_DIR)
+    return comparison
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    data = load_dataset()
+    export(train_all(data), data)
 
 
 if __name__ == "__main__":
