@@ -52,8 +52,7 @@ a 94 % en validación cruzada).
 │   ├── reports/            Informe generado y comparación histórica
 │   └── tests/
 ├── data/data.csv           Dataset WDBC
-├── e2e/                    Pruebas end-to-end (Playwright)
-└── docs/ai_development/    Guías y flujos de trabajo para agentes de IA
+└── e2e/                    Pruebas end-to-end (Playwright)
 ```
 
 `backend/artifacts/comparison.json` es la única fuente de las métricas: la API la sirve y el frontend la

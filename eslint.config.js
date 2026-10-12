@@ -4,7 +4,7 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
-  { ignores: ['dist', 'node_modules', 'test-results', 'playwright-report', 'ml', 'backend', 'docs'] },
+  { ignores: ['dist', 'node_modules', 'test-results', 'playwright-report', 'ml', 'backend'] },
   js.configs.recommended,
   {
     files: ['src/**/*.{js,jsx}'],
