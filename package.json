@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "uvicorn backend.app:app --reload --port 8000",
-    "train": "python backend/train.py"
+    "train": "python backend/train.py",
+    "test": "npm run test:backend && npm run test:e2e",
+    "test:backend": "python -m pytest backend/tests -q",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
@@ -16,6 +19,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",

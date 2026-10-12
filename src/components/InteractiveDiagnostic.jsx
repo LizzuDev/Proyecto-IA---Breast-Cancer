@@ -304,6 +304,7 @@ export default function InteractiveDiagnostic() {
                         <div className="flex items-center space-x-2">
                           <input
                             type="range"
+                            aria-label={`${feat.name} (control deslizante)`}
                             min={minVal}
                             max={maxVal}
                             step={feat.step}
@@ -333,8 +334,9 @@ export default function InteractiveDiagnostic() {
           {/* Model selection & Prominent Execute Button */}
           <div className="pt-4 border-t border-roseclinical-100/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-500 font-medium">Algoritmo:</span>
+              <label htmlFor="algorithm-select" className="text-xs text-gray-500 font-medium">Algoritmo:</label>
               <select
+                id="algorithm-select"
                 value={selectedAlgorithm}
                 onChange={(e) => setSelectedAlgorithm(e.target.value)}
                 className="text-xs font-semibold bg-white border border-gray-200 rounded px-2.5 py-2 text-gray-800 focus:outline-none focus:border-roseclinical-500"

@@ -69,4 +69,8 @@ __pycache__/
 .venv/
 backend/.venv/
 env/
-venv/
+venv/
+# Playwright / pytest
+test-results/
+playwright-report/
+.pytest_cache/
