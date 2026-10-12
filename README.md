@@ -1,116 +1,118 @@
-# 🎗️ OncoScan AI — Detección Asistida de Cáncer de Mama
+# OncoPath AI
 
-Plataforma interactiva de inteligencia artificial para el análisis, diagnóstico probabilístico y exploración de biopsias por punción-aspiración con aguja fina (FNA), basada en el **Wisconsin Diagnostic Breast Cancer Dataset (WDBC)** de Kaggle y UCI Machine Learning Repository.
+Herramienta académica de apoyo para clasificar biopsias mamarias por aspiración con aguja fina (FNA)
+a partir de 30 medidas morfométricas del núcleo celular. Usa el dataset
+**Wisconsin Diagnostic Breast Cancer (WDBC)**: 569 biopsias, 357 benignas y 212 malignas.
 
----
+> No es un dispositivo de diagnóstico. No sustituye el criterio de un patólogo.
 
-## 🌟 Características Principales
+## Modelos
 
-1. **Landing Page Clínica & Divulgativa**:
-   - Explicación de los parámetros citológicos nucleares (radio, perímetro, concavidad, textura, etc.).
-   - Estadísticas del modelo en conjunto de prueba independiente (114 casos de validación).
-   - Aviso de bioética y soporte médico.
+Se comparan tres clasificadores con el mismo split estratificado 80/20:
 
-2. **Herramienta Interactiva de Predicción**:
-   - Ingreso de mediciones nucleares organizadas por grupos: **Medias (Mean)**, **Errores Estándar (SE)** y **Peores Valores (Worst)**.
-   - **Presets Rápidos de Casos Clínicos**: Carga con un solo clic un caso benigno real o un caso maligno real del conjunto de prueba.
-   - **Resultados con Explicabilidad**:
-     - Diagnóstico: Benigno vs Maligno.
-     - Nivel de riesgo (Bajo, Moderado, Alto Sospechoso, Crítico).
-     - Probabilidad porcentual calculada por el modelo.
-     - Detección de las variables celulares de mayor desviación frente al tejido sano.
+| Id | Modelo |
+|---|---|
+| `svm` | Support Vector Machine, kernel RBF, calibrado por escalado de Platt |
+| `reg_bin` | Regresión Logística regularizada |
+| `log_pol` | Regresión Logística sobre términos polinomiales de grado 2 |
 
-3. **Panel de Métricas del Modelo**:
-   - Matriz de confusión interactiva (72 Verdaderos Negativos, 0 Falsos Positivos, 38 Verdaderos Positivos).
-   - Gráfico de importancia de características (Top 10 variables más influyentes según Random Forest).
-   - Métricas: Exactitud (96.5%), Precisión (100%), Sensibilidad (90.5%), ROC-AUC (0.9947).
+Cómo se entrenan y eligen (detalle en [`ml/reports/model_selection.md`](ml/reports/model_selection.md)):
 
----
+1. **Hiperparámetros por log-loss** (GridSearchCV, 5 folds, solo entrenamiento). Log-loss penaliza las
+   probabilidades mal calibradas, así que el porcentaje que ve el usuario es fiable.
+2. **Umbral clínico por modelo**: el mayor punto de corte con una sensibilidad ≥ 98 % en validación cruzada
+   repetida 5×5. En cribado oncológico un falso negativo cuesta más que un falso positivo.
+3. **Modelo principal**: el de menor Brier score en esa validación cruzada.
+4. El conjunto de test se evalúa **una sola vez**, con modelos y umbrales ya fijados.
 
-## 🏗️ Arquitectura del Sistema
+En validación cruzada anidada ([`ml/reports/benchmark.md`](ml/reports/benchmark.md)), Random Forest,
+Gradient Boosting y KNN quedan claramente por debajo en AUC, Brier y calibración. Los tres modelos de la API
+están empatados entre sí: sus diferencias de Brier (< 0.002) caen dentro de la variación entre folds. SVM se
+usa como principal porque, a la misma sensibilidad, comete menos falsos positivos (especificidad 96 % frente
+a 94 % en validación cruzada).
+
+## Estructura
 
 ```
-Proyecto IA - Breast Cancer/
-├── backend/
-│   ├── app.py              # API REST en FastAPI (/api/predict, /api/samples, /api/metadata)
-│   ├── train.py            # Entrenamiento con Scikit-Learn y serialización con Joblib
-│   ├── requirements.txt    # Dependencias de Python
-│   └── models/
-│       ├── breast_cancer_model.joblib  # Pipeline entrenado (StandardScaler + RandomForest)
-│       └── metadata.json               # Métricas, estadísticas y casos de muestra
-├── data/
-│   └── data.csv            # Dataset original de Wisconsin (Kaggle)
-├── src/
-│   ├── components/
-│   │   ├── Navbar.jsx               # Navegación con indicador de conexión a la API
-│   │   ├── LandingHero.jsx          # Hero section, explicación de FNA y CTA
-│   │   ├── InteractiveDiagnostic.jsx# Herramienta de predicción y formulario interactivo
-│   │   ├── ModelMetrics.jsx         # Matriz de confusión y feature importance
-│   │   ├── AboutProject.jsx         # Contexto clínico y referencias científicas
-│   │   └── Footer.jsx
-│   ├── services/
-│   │   └── api.js                   # Cliente fetch para consumir FastAPI
-│   ├── styles/
-│   ├── App.jsx                      # Enrutamiento de vistas y estado global
-│   └── main.jsx
-├── package.json
-└── tailwind.config.js
+.
+├── src/                    Frontend (React + Vite + Tailwind)
+│   ├── components/         Vistas: landing, diagnóstico, modelos & dataset
+│   ├── constants/          Variables clínicas del formulario
+│   ├── services/api.js     Cliente HTTP de la API
+│   └── utils/
+├── backend/                API de inferencia (FastAPI)
+│   ├── app/                main.py (rutas), inference.py, registry.py, schemas.py, config.py
+│   ├── artifacts/          Modelos y métricas generados por ml/train.py (versionados)
+│   └── tests/
+├── ml/                     Entrenamiento reproducible
+│   ├── train.py            Punto de entrada: python -m ml.train
+│   ├── candidates.py       Modelos y espacios de búsqueda
+│   ├── evaluation.py       Métricas, calibración y umbral clínico
+│   ├── notebooks/          EDA y exploración original de cada modelo
+│   ├── reports/            Informe generado y comparación histórica
+│   └── tests/
+├── data/data.csv           Dataset WDBC
+└── e2e/                    Pruebas end-to-end (Playwright)
 ```
 
----
+`backend/artifacts/comparison.json` es la única fuente de las métricas: la API la sirve y el frontend la
+incluye en el build como respaldo cuando la API no responde.
 
-## 🚀 Guía de Inicio Rápido
+## Puesta en marcha
 
-### 1. Requisitos Previos
-- **Node.js** (v18+)
-- **Python** (v3.10+) con `uv` o `pip`
-
----
-
-### 2. Entrenar el Modelo (Scikit-Learn + Joblib)
-Si deseas volver a entrenar el modelo y generar un nuevo archivo `joblib`:
+Requisitos: Node 20+ y Python 3.11+.
 
 ```bash
-# Con uv (rápido y automático):
-uv run --with scikit-learn --with pandas --with joblib python backend/train.py
+# Dependencias
+npm install
+python -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements-dev.txt
 
-# O con python tradicional:
-python backend/train.py
-```
-
-Esto generará automáticamente:
-- `backend/models/breast_cancer_model.joblib`
-- `backend/models/metadata.json`
-
----
-
-### 3. Iniciar el Backend (FastAPI en Puerto 8000)
-
-```bash
-# Con uv:
-uv run --with fastapi --with uvicorn --with scikit-learn --with pandas --with joblib uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
-
-# O con npm:
+# API (http://127.0.0.1:8000, documentación en /docs)
 npm run server
-```
 
-La documentación Swagger interactiva de la API estará disponible en:
-👉 `http://127.0.0.1:8000/docs`
-
----
-
-### 4. Iniciar el Frontend (Vite en Puerto 5173)
-
-En una segunda terminal:
-
-```bash
+# Frontend (http://localhost:5173), en otra terminal
 npm run dev
 ```
 
-Abre tu navegador en:
-👉 `http://localhost:5173`
+La URL de la API se configura con `VITE_API_URL` (ver `.env.example`).
 
----
+### Reentrenar
 
-## ⚠️ Descargo de Responsabilidad Médico
-Este software ha sido desarrollado con fines exclusivamente académicos, pedagógicos y de investigación en Inteligencia Artificial y Bioinformática. No constituye un dispositivo médico ni reemplaza la valoración clínica de un profesional de la salud colegiado.
+```bash
+npm run train        # python -m ml.train  (unos minutos)
+```
+
+Regenera `backend/artifacts/` y `ml/reports/model_selection.md`. scikit-learn está fijado en
+`backend/requirements.txt` porque los pipelines serializados no son portables entre versiones.
+
+## Calidad
+
+```bash
+npm run lint         # ESLint + Ruff
+npm run test:python  # pytest: API, pipeline de ML y artefactos
+npm run test:e2e     # Playwright: levanta API y frontend y prueba la app completa
+```
+
+El workflow `.github/workflows/ci.yml` ejecuta todo lo anterior en cada push y pull request.
+
+## API
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/health` | Estado y modelos cargados |
+| GET | `/api/models/comparison` | Métricas de validación de los tres modelos |
+| GET | `/api/samples` | Casos reales del test para probar la herramienta |
+| GET | `/api/metadata` | Variables y estadísticas del dataset |
+| POST | `/api/predict` | `{"features": {...}, "model_id": "all" \| "svm" \| "reg_bin" \| "log_pol"}` |
+
+## Despliegue
+
+- **Frontend:** Vercel (`vercel.json`). Definir `VITE_API_URL`.
+- **Backend:** cualquier plataforma con Procfile (Render, Railway…), con `backend/` como raíz.
+  Definir `CORS_ORIGINS` con el dominio del frontend.
+
+## Referencia
+
+Wolberg, W., Mangasarian, O., Street, N. y Street, W. (1995). *Breast Cancer Wisconsin (Diagnostic)*.
+UCI Machine Learning Repository. https://doi.org/10.24432/C5DW2B

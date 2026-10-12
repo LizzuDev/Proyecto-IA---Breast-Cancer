@@ -1,0 +1,23 @@
+[project]
+name = "oncopath-ai"
+version = "3.0.0"
+description = "Clasificación asistida de biopsias mamarias FNA (Wisconsin Diagnostic Breast Cancer)."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests", "ml/tests"]
+pythonpath = ["backend", "."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["ml/notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "N"]
+# X, X_train...: convención de scikit-learn para matrices de variables.
+ignore = ["N803", "N806"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "ml"]

@@ -7,8 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "uvicorn backend.app:app --reload --port 8000",
-    "train": "python backend/train.py"
+    "server": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "train": "python -m ml.train",
+    "lint": "eslint . && ruff check ml backend",
+    "test": "npm run test:python && npm run test:e2e",
+    "test:python": "python -m pytest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
@@ -16,10 +20,16 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.56.1",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.18",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "vite": "^5.1.6"

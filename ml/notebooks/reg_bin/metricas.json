@@ -1,0 +1,50 @@
+{
+  "modelo": "reg_bin",
+  "mejores_hiperparametros": {
+    "clf__C": 0.03162277660168379,
+    "clf__l1_ratio": 0
+  },
+  "cv_f1": 0.9670540404868764,
+  "cv_recall": 0.9529411764705882,
+  "test": {
+    "accuracy": 0.9824561403508771,
+    "precision": 1.0,
+    "recall": 0.9523809523809523,
+    "f1": 0.975609756097561,
+    "roc_auc": 0.998015873015873
+  },
+  "falsos_negativos": 2,
+  "falsos_positivos": 0,
+  "features": [
+    "radius_mean",
+    "texture_mean",
+    "perimeter_mean",
+    "area_mean",
+    "smoothness_mean",
+    "compactness_mean",
+    "concavity_mean",
+    "concave points_mean",
+    "symmetry_mean",
+    "fractal_dimension_mean",
+    "radius_se",
+    "texture_se",
+    "perimeter_se",
+    "area_se",
+    "smoothness_se",
+    "compactness_se",
+    "concavity_se",
+    "concave points_se",
+    "symmetry_se",
+    "fractal_dimension_se",
+    "radius_worst",
+    "texture_worst",
+    "perimeter_worst",
+    "area_worst",
+    "smoothness_worst",
+    "compactness_worst",
+    "concavity_worst",
+    "concave points_worst",
+    "symmetry_worst",
+    "fractal_dimension_worst"
+  ]
+}

@@ -1,390 +1,426 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Cpu, 
-  Sparkles, 
-  RotateCcw, 
-  CheckCircle2, 
-  AlertTriangle, 
-  HelpCircle, 
-  Sliders, 
-  BarChart2, 
-  Download, 
-  ArrowRight,
-  FlaskConical,
-  Zap,
-  Info
-} from 'lucide-react';
-import { predictDiagnosis, fetchSamples, fetchMetadata } from '../services/api';
-
-// 10 características nucleares base con nombres legibles, descripciones y rangos del dataset WDBC
-const FEATURE_DEFINITIONS = [
-  { key: 'radius', name: 'Radio Nuclear', desc: 'Promedio de distancias del centro a puntos del perímetro (µm)', min: 6.0, max: 30.0, step: 0.1, unit: 'µm', defaultMean: 14.12 },
-  { key: 'texture', name: 'Textura Cromatínica', desc: 'Desviación estándar de valores de escala de grises', min: 9.0, max: 40.0, step: 0.1, unit: 'escala', defaultMean: 19.28 },
-  { key: 'perimeter', name: 'Perímetro Nuclear', desc: 'Longitud del contorno nuclear promedio', min: 40.0, max: 190.0, step: 0.5, unit: 'µm', defaultMean: 91.96 },
-  { key: 'area', name: 'Área Nuclear', desc: 'Área superficial del corte transversal del núcleo celular', min: 140.0, max: 2500.0, step: 5.0, unit: 'µm²', defaultMean: 654.88 },
-  { key: 'smoothness', name: 'Suavidad', desc: 'Variación local en las longitudes de los radios celulares', min: 0.05, max: 0.17, step: 0.001, unit: '', defaultMean: 0.096 },
-  { key: 'compactness', name: 'Compacidad', desc: 'Calculada como (perímetro² / área - 1.0)', min: 0.01, max: 0.35, step: 0.001, unit: '', defaultMean: 0.104 },
-  { key: 'concavity', name: 'Concavidad', desc: 'Severidad de las hendiduras en el contorno del núcleo', min: 0.0, max: 0.45, step: 0.005, unit: '', defaultMean: 0.088 },
-  { key: 'concave points', name: 'Puntos Cóncavos', desc: 'Número o proporción de hendiduras del perímetro', min: 0.0, max: 0.21, step: 0.002, unit: '', defaultMean: 0.048 },
-  { key: 'symmetry', name: 'Simetría', desc: 'Grado de simetría de la forma nuclear bilateral', min: 0.10, max: 0.32, step: 0.005, unit: '', defaultMean: 0.181 },
-  { key: 'fractal_dimension', name: 'Dimensión Fractal', desc: 'Aproximación de Mandelbrot de la frontera nuclear', min: 0.04, max: 0.10, step: 0.001, unit: '', defaultMean: 0.062 },
-];
+import { useState, useEffect } from 'react';
+import { Activity, RotateCcw, Sliders } from 'lucide-react';
+import { predictDiagnosis, fetchSamples } from '../services/api';
+import { CLINICAL_FEATURE_GROUPS, baselineFeatures, borderlineFeatures } from '../constants/clinicalFeatures';
 
 export default function InteractiveDiagnostic() {
-  const [activeGroup, setActiveGroup] = useState('mean'); // 'mean', 'se', 'worst'
+  const [measurementMode, setMeasurementMode] = useState('mean'); // 'mean' o 'worst'
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState('all'); // 'all' = consenso con el modelo principal
   const [samples, setSamples] = useState(null);
-  const [metadata, setMetadata] = useState(null);
   const [features, setFeatures] = useState({});
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedPreset, setSelectedPreset] = useState(null);
+  const [activeSampleLabel, setActiveSampleLabel] = useState('Valores basales');
 
-  // Inicializar características por defecto
   useEffect(() => {
-    const initFeats = {};
-    FEATURE_DEFINITIONS.forEach(f => {
-      initFeats[`${f.key}_mean`] = f.defaultMean;
-      initFeats[`${f.key}_se`] = Number((f.defaultMean * 0.05).toFixed(3));
-      initFeats[`${f.key}_worst`] = Number((f.defaultMean * 1.25).toFixed(2));
-    });
-    setFeatures(initFeats);
+    setFeatures(baselineFeatures());
 
-    // Cargar muestras y metadatos de la API
     async function loadData() {
-      const [sData, mData] = await Promise.all([fetchSamples(), fetchMetadata()]);
+      const sData = await fetchSamples();
       if (sData) setSamples(sData);
-      if (mData) setMetadata(mData);
     }
     loadData();
   }, []);
 
-  const handleInputChange = (fullKey, value) => {
-    setSelectedPreset(null);
+  const handleInputChange = (key, value) => {
+    const num = parseFloat(value) || 0;
+    setActiveSampleLabel('Personalizado');
     setFeatures(prev => ({
       ...prev,
-      [fullKey]: parseFloat(value) || 0
+      [`${key}_${measurementMode}`]: num
     }));
   };
 
   const handleLoadSample = (sampleObj, label) => {
     if (!sampleObj || !sampleObj.features) return;
     setFeatures(sampleObj.features);
-    setSelectedPreset(label);
+    setActiveSampleLabel(label);
+    setPrediction(null);
+    setError(null);
+  };
+
+  const handleLoadBorderline = () => {
+    setFeatures(borderlineFeatures());
+    setActiveSampleLabel('Muestra Indeterminada');
     setPrediction(null);
     setError(null);
   };
 
   const handleReset = () => {
-    const initFeats = {};
-    FEATURE_DEFINITIONS.forEach(f => {
-      initFeats[`${f.key}_mean`] = f.defaultMean;
-      initFeats[`${f.key}_se`] = Number((f.defaultMean * 0.05).toFixed(3));
-      initFeats[`${f.key}_worst`] = Number((f.defaultMean * 1.25).toFixed(2));
-    });
-    setFeatures(initFeats);
-    setSelectedPreset(null);
+    setFeatures(baselineFeatures());
+    setActiveSampleLabel('Valores basales');
     setPrediction(null);
     setError(null);
   };
 
-  const handlePredict = async () => {
+  const handleExecute = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await predictDiagnosis(features);
+      const res = await predictDiagnosis(features, selectedAlgorithm);
       setPrediction(res);
     } catch (err) {
-      setError(err.message || 'No fue posible conectar con el servidor de IA.');
+      setError(err.message || 'Error de comunicación con el servicio de inferencia.');
     } finally {
       setLoading(false);
     }
   };
 
+  const maligScore = prediction ? prediction.probability_malignant : 0;
+  const arcLength = 220;
+  const strokeOffset = arcLength - (arcLength * (maligScore / 100));
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       
-      {/* Header of Tool */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-rosepink-900/30">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-rosepink-950 text-rosepink-300 border border-rosepink-700/40 text-xs font-semibold uppercase tracking-wider mb-3">
-              <FlaskConical className="w-3.5 h-3.5 text-rosepink-400" />
-              <span>Simulador Interactivo con Scikit-Learn</span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold font-display text-white mb-2">
-              Análisis Citológico Asistido por IA
+      {/* Header bar - Seamless horizontal layout without pill capsules */}
+      <div className="bg-white/70 p-5 border border-roseclinical-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-lg font-bold text-gray-900 tracking-tight">
+              Evaluación Citopatológica
             </h1>
-            <p className="text-sm sm:text-base text-slateclinical-300 max-w-2xl">
-              Ingresa los parámetros morfológicos de la biopsia FNA o utiliza un caso clínico precargado para estimar la probabilidad de malignidad con el modelo Random Forest / Joblib.
-            </p>
+            <span className="text-xs text-roseclinical-700 font-semibold">
+              {activeSampleLabel}
+            </span>
           </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Ingreso y valoración cuantitativa de biopsias por aspiración con aguja fina (FNA).
+          </p>
+        </div>
 
-          {/* Preset Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5">
+        {/* Quick Sample Selector - Clean flat segmented buttons */}
+        <div className="flex items-center space-x-1.5">
+          <div className="inline-flex items-center gap-4 text-xs font-medium">
             <button
+              disabled={!samples?.benign?.[0]}
+              title={samples ? undefined : 'Disponible cuando la API está activa'}
               onClick={() => {
-                if (samples?.benign?.[0]) {
-                  handleLoadSample(samples.benign[0], 'Benigno #1');
-                }
+                if (samples?.benign?.[0]) handleLoadSample(samples.benign[0], 'Muestra Benigna');
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 border transition-all ${
-                selectedPreset === 'Benigno #1'
-                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30'
-                  : 'glass-panel-subtle hover:bg-slateclinical-800 text-emerald-300 border-emerald-900/50'
+              className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                activeSampleLabel === 'Muestra Benigna'
+                  ? 'border-roseclinical-600 text-gray-900 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Cargar Caso Benigno</span>
+              Caso Benigno
             </button>
 
             <button
+              disabled={!samples?.malignant?.[0]}
+              title={samples ? undefined : 'Disponible cuando la API está activa'}
               onClick={() => {
-                if (samples?.malignant?.[0]) {
-                  handleLoadSample(samples.malignant[0], 'Maligno #1');
-                }
+                if (samples?.malignant?.[0]) handleLoadSample(samples.malignant[0], 'Muestra Maligna');
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 border transition-all ${
-                selectedPreset === 'Maligno #1'
-                  ? 'bg-rosepink-600 text-white border-rosepink-500 shadow-md shadow-rosepink-600/30'
-                  : 'glass-panel-subtle hover:bg-slateclinical-800 text-rosepink-300 border-rosepink-900/50'
+              className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                activeSampleLabel === 'Muestra Maligna'
+                  ? 'border-roseclinical-600 text-roseclinical-700 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >
-              <AlertTriangle className="w-3.5 h-3.5 text-rosepink-400" />
-              <span>Cargar Caso Maligno</span>
+              Caso Sospechoso
             </button>
 
             <button
-              onClick={handleReset}
-              className="px-3.5 py-2 rounded-xl text-xs font-medium glass-panel-subtle hover:bg-slateclinical-800 text-slateclinical-300 border border-slateclinical-700/60 flex items-center space-x-1.5 transition-all"
-              title="Restablecer a valores promedios"
+              onClick={handleLoadBorderline}
+              className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                activeSampleLabel === 'Muestra Indeterminada'
+                  ? 'border-roseclinical-600 text-gray-900 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
+              }`}
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Limpiar</span>
+              Caso Límite
             </button>
           </div>
+
+          <button
+            onClick={handleReset}
+            className="p-2 ml-2 text-gray-500 hover:text-roseclinical-700 transition-colors"
+            title="Restablecer mediciones"
+            aria-label="Restablecer mediciones"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      {/* Main Grid: Form Inputs + Results Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Main Layout: Inputs on the left, Results on the right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left column: Input Form (7 cols) */}
-        <div className="lg:col-span-7 glass-panel p-6 sm:p-8 rounded-3xl border border-slateclinical-800 space-y-6">
+        {/* Left Column: Form Section (7 cols) */}
+        <div className="lg:col-span-7 bg-white/70 border border-roseclinical-100 p-6 space-y-6">
           
-          {/* Subtabs for Mean, SE, Worst */}
-          <div className="flex items-center justify-between border-b border-slateclinical-800 pb-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-slateclinical-400">
-              Categoría de Variables
-            </span>
-            <div className="flex space-x-1 bg-slateclinical-900/90 p-1 rounded-xl border border-slateclinical-800">
+          {/* Subheader with View Mode Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-roseclinical-100/70 gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">
+                Parámetros Celulares
+              </h2>
+              <p className="text-xs text-gray-500">
+                Ajuste los valores observados en el microscopio digital
+              </p>
+            </div>
+
+            {/* Seamless Mode Switcher */}
+            <div className="inline-flex items-center gap-4 text-xs font-medium">
               <button
-                onClick={() => setActiveGroup('mean')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  activeGroup === 'mean'
-                    ? 'bg-rosepink-600 text-white shadow-sm'
-                    : 'text-slateclinical-400 hover:text-white'
+                onClick={() => setMeasurementMode('mean')}
+                className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  measurementMode === 'mean'
+                    ? 'border-roseclinical-600 text-gray-900 font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
                 }`}
               >
-                Medias (Mean)
+                Valores Medios
               </button>
               <button
-                onClick={() => setActiveGroup('se')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  activeGroup === 'se'
-                    ? 'bg-rosepink-600 text-white shadow-sm'
-                    : 'text-slateclinical-400 hover:text-white'
+                onClick={() => setMeasurementMode('worst')}
+                className={`pb-1 border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  measurementMode === 'worst'
+                    ? 'border-roseclinical-600 text-gray-900 font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
                 }`}
               >
-                Error Estándar (SE)
-              </button>
-              <button
-                onClick={() => setActiveGroup('worst')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  activeGroup === 'worst'
-                    ? 'bg-rosepink-600 text-white shadow-sm'
-                    : 'text-slateclinical-400 hover:text-white'
-                }`}
-              >
-                Peores Valores (Worst)
+                Mediciones Extremas
               </button>
             </div>
           </div>
 
-          {/* Form Fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {FEATURE_DEFINITIONS.map((feat) => {
-              const fullKey = `${feat.key}_${activeGroup}`;
-              const value = features[fullKey] !== undefined ? features[fullKey] : feat.defaultMean;
-              
-              // Multiplicadores dinámicos de rango para SE y Worst
-              const minVal = activeGroup === 'se' ? (feat.min * 0.01) : feat.min;
-              const maxVal = activeGroup === 'worst' ? (feat.max * 1.5) : activeGroup === 'se' ? (feat.max * 0.2) : feat.max;
-              const stepVal = activeGroup === 'se' ? (feat.step * 0.1) : feat.step;
-
-              return (
-                <div 
-                  key={fullKey}
-                  className="p-3.5 rounded-xl bg-slateclinical-900/60 border border-slateclinical-800 hover:border-slateclinical-700 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label 
-                      htmlFor={fullKey} 
-                      className="text-xs font-semibold text-slateclinical-200 truncate pr-2"
-                      title={feat.desc}
-                    >
-                      {feat.name}
-                    </label>
-                    <span className="text-[10px] text-slateclinical-400 font-mono">
-                      {feat.unit}
-                    </span>
-                  </div>
-
-                  <p className="text-[10px] text-slateclinical-500 mb-2 truncate" title={feat.desc}>
-                    {feat.desc}
-                  </p>
-
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="range"
-                      min={minVal}
-                      max={maxVal}
-                      step={stepVal}
-                      value={value}
-                      onChange={(e) => handleInputChange(fullKey, e.target.value)}
-                      className="w-full accent-rosepink-500 h-1.5 bg-slateclinical-800 rounded-lg cursor-pointer"
-                    />
-                    <input
-                      id={fullKey}
-                      type="number"
-                      min={minVal}
-                      max={maxVal}
-                      step={stepVal}
-                      value={value}
-                      onChange={(e) => handleInputChange(fullKey, e.target.value)}
-                      className="w-20 px-2 py-1 text-xs text-right font-mono rounded-lg bg-slateclinical-950 border border-slateclinical-700 text-white focus:border-rosepink-500 focus:outline-none"
-                    />
-                  </div>
+          {/* Grouped Feature Sections without heavy bubble cards */}
+          <div className="space-y-6 divide-y divide-gray-100">
+            {CLINICAL_FEATURE_GROUPS.map((group, gIdx) => (
+              <div key={gIdx} className={gIdx > 0 ? 'pt-6 space-y-3' : 'space-y-3'}>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                    {group.category}
+                  </h3>
+                  <span className="text-[11px] text-gray-400 font-normal">
+                    {group.description}
+                  </span>
                 </div>
-              );
-            })}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {group.features.map((feat) => {
+                    const fullKey = `${feat.key}_${measurementMode}`;
+                    const val = features[fullKey] !== undefined ? features[fullKey] : feat.defaultMean;
+                    const minVal = feat.min;
+                    const maxVal = measurementMode === 'worst' ? (feat.max * 1.4) : feat.max;
+
+                    return (
+                      <div 
+                        key={feat.key} 
+                        className="p-3 bg-surface-subtle/80 border-l-2 border-transparent hover:border-roseclinical-300 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label 
+                            htmlFor={fullKey} 
+                            className="text-xs font-semibold text-gray-800 truncate"
+                            title={feat.name}
+                          >
+                            {feat.name}
+                          </label>
+                          <span className="text-[10px] text-gray-400 font-mono">
+                            {feat.unit}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="range"
+                            aria-label={`${feat.name} (control deslizante)`}
+                            min={minVal}
+                            max={maxVal}
+                            step={feat.step}
+                            value={val}
+                            onChange={(e) => handleInputChange(feat.key, e.target.value)}
+                            className="w-full h-1 bg-gray-300 rounded accent-roseclinical-600 cursor-pointer"
+                          />
+                          <input
+                            id={fullKey}
+                            type="number"
+                            min={minVal}
+                            max={maxVal}
+                            step={feat.step}
+                            value={val}
+                            onChange={(e) => handleInputChange(feat.key, e.target.value)}
+                            className="w-16 px-1.5 py-1 text-xs text-right font-mono bg-white border border-gray-200 rounded text-gray-900 focus:border-roseclinical-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Action Trigger */}
-          <div className="pt-4 border-t border-slateclinical-800 flex items-center justify-between">
-            <span className="text-xs text-slateclinical-400 flex items-center space-x-1.5">
-              <Info className="w-3.5 h-3.5 text-rosepink-400" />
-              <span>30 características listas para inferencia</span>
-            </span>
+          {/* Model selection & Prominent Execute Button */}
+          <div className="pt-4 border-t border-roseclinical-100/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-2">
+              <label htmlFor="algorithm-select" className="text-xs text-gray-500 font-medium">Algoritmo:</label>
+              <select
+                id="algorithm-select"
+                value={selectedAlgorithm}
+                onChange={(e) => setSelectedAlgorithm(e.target.value)}
+                className="text-xs font-semibold bg-white border border-gray-200 rounded px-2.5 py-2 text-gray-800 focus:outline-none focus:border-roseclinical-500"
+              >
+                <option value="all">Consenso (modelo principal)</option>
+                <option value="reg_bin">Regresión Logística</option>
+                <option value="svm">SVM Kernel RBF</option>
+                <option value="log_pol">Regresión Polinomial</option>
+              </select>
+            </div>
 
+            {/* High Impact Primary Button with Subtle Rose Accent */}
             <button
-              onClick={handlePredict}
+              onClick={handleExecute}
               disabled={loading}
-              className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-rosepink-600 to-rosepink-500 hover:from-rosepink-500 hover:to-rosepink-600 text-white text-sm font-semibold shadow-lg shadow-rosepink-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+              className="inline-flex items-center justify-center space-x-2 px-7 py-2.5 rounded-md bg-roseclinical-600 hover:bg-roseclinical-700 active:bg-roseclinical-800 text-white font-semibold text-xs tracking-wide transition-all disabled:opacity-50"
             >
-              <Zap className="w-4 h-4" />
-              <span>{loading ? 'Procesando con Scikit-Learn...' : 'Calcular Diagnóstico'}</span>
+              <Activity className="w-4 h-4" />
+              <span>{loading ? 'Calculando diagnóstico...' : 'Ejecutar Diagnóstico'}</span>
             </button>
           </div>
 
         </div>
 
-        {/* Right column: Results Panel (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Right Column: Clean Medical Diagnostic Dashboard (5 cols) */}
+        <div className="lg:col-span-5 space-y-5">
           
-          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slateclinical-800 relative">
-            <h2 className="text-lg font-bold font-display text-white mb-4 flex items-center space-x-2">
-              <BarChart2 className="w-5 h-5 text-rosepink-400" />
-              <span>Resultado de la Inferencia</span>
-            </h2>
+          {/* Main Result Card */}
+          <div className="bg-white/70 border border-roseclinical-100 p-6 space-y-6">
+            
+            <div className="flex items-center justify-between border-b border-roseclinical-100/70 pb-3">
+              <h2 className="text-sm font-bold text-gray-900">
+                Resultado del Análisis
+              </h2>
+              {prediction && (
+                <span className={`text-xs font-semibold uppercase tracking-wider ${
+                  prediction.diagnosis === 'Benigno'
+                    ? 'text-emerald-700'
+                    : 'text-roseclinical-700'
+                }`}>
+                  {prediction.diagnosis}
+                </span>
+              )}
+            </div>
 
             {error && (
-              <div className="p-4 rounded-xl bg-rosepink-950/60 border border-rosepink-800 text-rosepink-200 text-xs mb-4">
-                <strong>Error:</strong> {error}
-                <div className="mt-2 text-[11px] text-rosepink-300">
-                  Asegúrate de que el servidor FastAPI esté iniciado en <code>http://127.0.0.1:8000</code>.
-                </div>
+              <div className="py-2 pl-3 border-l-2 border-roseclinical-500 text-roseclinical-800 text-xs">
+                {error}
               </div>
             )}
 
             {!prediction && !error && (
-              <div className="text-center py-14 px-4 space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-slateclinical-900 border border-slateclinical-800 flex items-center justify-center mx-auto text-slateclinical-500">
-                  <Sliders className="w-8 h-8 text-rosepink-400/60 animate-pulse" />
+              <div className="text-center py-14 px-4 space-y-3">
+                <div className="flex items-center justify-center mx-auto text-roseclinical-300">
+                  <Sliders className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold text-white mb-1">
-                    Esperando datos de la biopsia
-                  </h3>
-                  <p className="text-xs text-slateclinical-400 max-w-sm mx-auto">
-                    Haz clic en <strong>"Calcular Diagnóstico"</strong> o carga un caso benigno o maligno de prueba con los botones superiores.
-                  </p>
-                </div>
+                <h3 className="text-sm font-semibold text-gray-800">
+                  Esperando Ejecución
+                </h3>
+                <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                  Presione <strong>Ejecutar Diagnóstico</strong> para iniciar la inferencia matemática de los modelos.
+                </p>
               </div>
             )}
 
             {prediction && (
-              <div className="space-y-6 animate-fade-in">
+              <div className="space-y-6">
                 
-                {/* Result Card Badge */}
-                <div className={`p-6 rounded-2xl border text-center ${
-                  prediction.diagnosis === 'Benigno'
-                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
-                    : 'bg-rosepink-950/40 border-rosepink-500/40 text-rosepink-200'
-                }`}>
-                  <span className="text-xs uppercase font-bold tracking-wider opacity-80 block mb-1">
-                    Diagnóstico Predictivo
+                {/* Visual Radial Gauge Score */}
+                <div className="flex flex-col items-center justify-center pt-2">
+                  <div className="relative w-44 h-28 flex items-end justify-center">
+                    <svg className="w-44 h-28 overflow-visible" viewBox="0 0 160 90">
+                      <path
+                        d="M 15 85 A 65 65 0 0 1 145 85"
+                        fill="none"
+                        stroke="#E5E7EB"
+                        strokeWidth="11"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M 15 85 A 65 65 0 0 1 145 85"
+                        fill="none"
+                        stroke={prediction.diagnosis === 'Benigno' ? '#10B981' : '#D62754'}
+                        strokeWidth="11"
+                        strokeLinecap="round"
+                        strokeDasharray={arcLength}
+                        strokeDashoffset={strokeOffset}
+                        className="transition-all duration-700"
+                      />
+                    </svg>
+
+                    <div className="absolute bottom-0 text-center">
+                      <span className="text-3xl font-bold font-mono text-gray-900 block leading-tight">
+                        {prediction.probability_malignant}%
+                      </span>
+                    </div>
+                  </div>
+                  <span className="mt-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                    Probabilidad de malignidad
                   </span>
-                  <div className="text-3xl sm:text-4xl font-extrabold font-display mb-2">
-                    {prediction.diagnosis.toUpperCase()}
-                  </div>
-                  <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slateclinical-950/80 border border-current">
-                    <span>Nivel de Riesgo: <strong>{prediction.risk_level}</strong></span>
+
+                  <div className="mt-4 text-center">
+                    <div className="text-xs font-medium text-gray-700">
+                      Evaluación: <span className={prediction.diagnosis === 'Benigno' ? 'text-emerald-700 font-bold' : 'text-roseclinical-700 font-bold'}>{prediction.risk_level}</span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      {prediction.name} · se considera maligno desde {prediction.threshold}%
+                    </p>
                   </div>
                 </div>
 
-                {/* Probability Bars */}
-                <div className="space-y-3">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-emerald-400">
-                      Benigno: {prediction.probability_benign}%
-                    </span>
-                    <span className="text-rosepink-400">
-                      Maligno: {prediction.probability_malignant}%
-                    </span>
-                  </div>
+                {/* Multi-Model Consensus (Clean Flat Grid) */}
+                {prediction.multi_model_summary && (
+                  <div className="p-3.5 bg-surface-subtle/80 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-gray-800">Consenso de Modelos</span>
+                      <span className="text-gray-500 font-medium font-mono text-[11px]">
+                        {prediction.consensus?.agreement_percentage}% concordancia
+                      </span>
+                    </div>
 
-                  <div className="w-full h-3 rounded-full bg-slateclinical-900 overflow-hidden flex border border-slateclinical-800">
-                    <div 
-                      className="bg-emerald-500 transition-all duration-700" 
-                      style={{ width: `${prediction.probability_benign}%` }}
-                    ></div>
-                    <div 
-                      className="bg-rosepink-500 transition-all duration-700" 
-                      style={{ width: `${prediction.probability_malignant}%` }}
-                    ></div>
+                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                      {Object.entries(prediction.multi_model_summary).map(([key, data]) => {
+                        const isMal = data.diagnosis === 'Maligno';
+                        return (
+                          <div 
+                            key={key} 
+                            className="bg-white/80 p-2 border-b border-roseclinical-100"
+                          >
+                            <span className="text-[10px] text-gray-400 block truncate">
+                              {data.short_name}
+                            </span>
+                            <span className={`text-xs font-bold block ${isMal ? 'text-roseclinical-700' : 'text-emerald-700'}`}>
+                              {data.diagnosis}
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-mono">
+                              {isMal ? `${data.probability_malignant}%` : `${data.probability_benign}%`}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Factors of highest deviation (Explainability) */}
+                {/* Key Cellular Alterations (Clean Integrated List) */}
                 {prediction.top_deviations && prediction.top_deviations.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-slateclinical-800">
-                    <span className="text-xs font-semibold text-slateclinical-300 block mb-2">
-                      Factores celulares de mayor impacto:
+                  <div className="space-y-2 pt-2 border-t border-roseclinical-100/70">
+                    <span className="text-xs font-bold text-gray-800 block">
+                      Parámetros con mayor desviación respecto a lo benigno:
                     </span>
                     <div className="space-y-1.5">
-                      {prediction.top_deviations.slice(0, 4).map((dev, i) => (
-                        <div 
-                          key={i}
-                          className="flex items-center justify-between text-xs p-2 rounded-lg bg-slateclinical-900/60 border border-slateclinical-800"
-                        >
-                          <span className="text-slateclinical-300 font-mono truncate mr-2">
-                            {dev.feature}
-                          </span>
-                          <span className={`text-[11px] font-bold ${
-                            dev.deviation_z > 0 ? 'text-rosepink-400' : 'text-emerald-400'
+                      {prediction.top_deviations.slice(0, 4).map((d, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs py-1.5 px-2.5 bg-surface-subtle/70">
+                          <span className="font-mono text-gray-700 text-[11px]">{d.feature}</span>
+                          <span className={`font-semibold font-mono text-[11px] ${
+                            d.deviation_z > 0 ? 'text-roseclinical-700' : 'text-emerald-700'
                           }`}>
-                            {dev.deviation_z > 0 ? `+${dev.deviation_z}σ` : `${dev.deviation_z}σ`} vs media
+                            {d.deviation_z > 0 ? `+${d.deviation_z} σ` : `${d.deviation_z} σ`}
                           </span>
                         </div>
                       ))}
@@ -392,12 +428,9 @@ export default function InteractiveDiagnostic() {
                   </div>
                 )}
 
-                {/* Disclaimer */}
-                <div className="p-3.5 rounded-xl bg-slateclinical-900/80 border border-slateclinical-800 text-[11px] text-slateclinical-400 flex items-start space-x-2">
-                  <Info className="w-4 h-4 text-rosepink-400 shrink-0 mt-0.5" />
-                  <span>
-                    Este diagnóstico es un cálculo probabilístico computacional asistido por IA para propósitos científicos. Debe ser validado con histopatología clínica y mamografía.
-                  </span>
+                {/* Minimalist Medical Disclaimer */}
+                <div className="text-[11px] text-gray-400 leading-relaxed pt-2 border-t border-roseclinical-100/70">
+                  Herramienta analítica de apoyo a la decisión diagnóstica. Requiere correlación histopatológica formal.
                 </div>
 
               </div>

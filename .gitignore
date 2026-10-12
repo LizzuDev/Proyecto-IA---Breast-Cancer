@@ -56,3 +56,27 @@ Thumbs.db
 .branches/
 .temp/
 supabase/.temp/
+
+
+# Material de referencia
+08-Taller_SVM.html
+Proyecto 1 - Clasificacion con Machine Learning  App Web.docx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+backend/.venv/
+env/
+venv/
+# Playwright / pytest
+test-results/
+playwright-report/
+.pytest_cache/
+
+# Salidas locales de los notebooks (los artefactos oficiales están en backend/artifacts)
+ml/notebooks/*/modelo/
+ml/notebooks/*/pipeline/
+__pycache__/
+.ruff_cache/

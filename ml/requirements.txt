@@ -1,0 +1,2 @@
+# Entrenamiento. Usa las mismas versiones que la API para que los artefactos sean compatibles.
+-r ../backend/requirements.txt
