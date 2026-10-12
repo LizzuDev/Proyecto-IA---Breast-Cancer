@@ -75,8 +75,5 @@ test-results/
 playwright-report/
 .pytest_cache/
 
-# Salidas locales de los notebooks (los artefactos oficiales están en backend/artifacts)
-ml/notebooks/*/modelo/
-ml/notebooks/*/pipeline/
 __pycache__/
 .ruff_cache/

@@ -2,7 +2,8 @@
 
 Herramienta académica de apoyo para clasificar biopsias mamarias por aspiración con aguja fina (FNA)
 a partir de 30 medidas morfométricas del núcleo celular. Usa el dataset
-**Wisconsin Diagnostic Breast Cancer (WDBC)**: 569 biopsias, 357 benignas y 212 malignas.
+[Breast Cancer Wisconsin (Diagnostic)](https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data)
+de Kaggle: 569 biopsias, 357 benignas y 212 malignas.
 
 > No es un dispositivo de diagnóstico. No sustituye el criterio de un patólogo.
 
@@ -57,6 +58,29 @@ a 94 % en validación cruzada).
 
 `backend/artifacts/comparison.json` es la única fuente de las métricas: la API la sirve y el frontend la
 incluye en el build como respaldo cuando la API no responde.
+
+## Notebooks
+
+Documentan el proceso completo, en este orden:
+
+1. `ml/notebooks/reg_bin/reg_bin.ipynb`, `svm/svm.ipynb`, `log_pol/log_pol.ipynb`: entrenamiento,
+   evaluación y exportación de cada modelo.
+2. `ml/notebooks/00_eda_y_comparacion.ipynb`: contexto, EDA, preparación de datos, comparación de los tres
+   modelos, calibración, umbral clínico, elección del modelo final y exportación a `backend/artifacts/`.
+
+```bash
+pip install -r ml/requirements.txt
+jupyter lab ml/notebooks
+```
+
+## Entregables
+
+| Entregable | Dónde está |
+|---|---|
+| Notebook | `ml/notebooks/` (ver orden arriba) |
+| Modelo exportado | `backend/artifacts/models/*/pipeline.joblib` |
+| Código de la app | `src/` (interfaz) y `backend/app/` (API con el modelo) |
+| Dependencias | `backend/requirements.txt`, `ml/requirements.txt`, `package.json` |
 
 ## Puesta en marcha
 
